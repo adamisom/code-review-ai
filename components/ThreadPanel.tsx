@@ -1,6 +1,7 @@
 'use client';
 
 import { useCodeReview } from './providers/CodeReviewProvider';
+import { CommentThread } from './CommentThread';
 import { formatTimestamp, truncateText } from '@/lib/utils';
 
 export function ThreadPanel() {
@@ -122,14 +123,20 @@ export function ThreadPanel() {
         )}
       </div>
 
-      {/* TODO: Add active thread conversation view here */}
-      {state.activeThreadId && (
-        <div className="border-t border-border p-4 bg-border/20">
-          <p className="text-sm text-secondary">
-            Thread conversation view - to be implemented
-          </p>
-        </div>
-      )}
+      {/* Active thread conversation view */}
+      {state.activeThreadId && (() => {
+        const activeThread = threads.find((t) => t.id === state.activeThreadId);
+        if (!activeThread) return null;
+
+        return (
+          <div className="border-t border-border h-[60%] flex-shrink-0">
+            <CommentThread
+              thread={activeThread}
+              onClose={() => dispatch({ type: 'SET_ACTIVE_THREAD', payload: null })}
+            />
+          </div>
+        );
+      })()}
     </div>
   );
 }

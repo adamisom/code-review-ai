@@ -83,3 +83,100 @@ body {
   background-color: rgba(248, 113, 113, 0.1);
   border-left: 3px solid #f87171;
 }
+
+/* Thread inline colors */
+.thread-inline-blue {
+  background-color: rgba(74, 158, 255, 0.15);
+}
+
+.thread-inline-purple {
+  background-color: rgba(168, 85, 247, 0.15);
+}
+
+.thread-inline-green {
+  background-color: rgba(34, 197, 94, 0.15);
+}
+
+.thread-inline-orange {
+  background-color: rgba(245, 158, 11, 0.15);
+}
+
+.thread-inline-pink {
+  background-color: rgba(236, 72, 153, 0.15);
+}
+
+.thread-inline-cyan {
+  background-color: rgba(6, 182, 212, 0.15);
+}
+
+.thread-inline-yellow {
+  background-color: rgba(234, 179, 8, 0.15);
+}
+
+.thread-inline-red {
+  background-color: rgba(248, 113, 113, 0.15);
+}
+
+/* Thread glyph (gutter) colors */
+.thread-glyph-blue::before {
+  content: '●';
+  color: #4a9eff;
+  font-size: 12px;
+}
+
+.thread-glyph-purple::before {
+  content: '●';
+  color: #a855f7;
+  font-size: 12px;
+}
+
+.thread-glyph-green::before {
+  content: '●';
+  color: #22c55e;
+  font-size: 12px;
+}
+
+.thread-glyph-orange::before {
+  content: '●';
+  color: #f59e0b;
+  font-size: 12px;
+}
+
+.thread-glyph-pink::before {
+  content: '●';
+  color: #ec4899;
+  font-size: 12px;
+}
+
+.thread-glyph-cyan::before {
+  content: '●';
+  color: #06b6d4;
+  font-size: 12px;
+}
+
+.thread-glyph-yellow::before {
+  content: '●';
+  color: #eab308;
+  font-size: 12px;
+}
+
+.thread-glyph-red::before {
+  content: '●';
+  color: #f87171;
+  font-size: 12px;
+}
+
+/* Active thread highlight */
+.thread-highlight-active {
+  border-left-width: 4px;
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

@@ -99,6 +99,7 @@ export function getLineCount(code: string): number {
 }
 
 // Extract selected text from code given line/column range
+// Monaco uses 1-indexed positions, endColumn is inclusive
 export function extractSelection(
   code: string,
   startLine: number,
@@ -109,7 +110,8 @@ export function extractSelection(
   const lines = code.split('\n');
   
   if (startLine === endLine) {
-    return lines[startLine - 1].substring(startColumn - 1, endColumn - 1);
+    // For single line, endColumn is inclusive
+    return lines[startLine - 1].substring(startColumn - 1, endColumn);
   }
   
   const selectedLines: string[] = [];
@@ -117,7 +119,8 @@ export function extractSelection(
     if (i === startLine - 1) {
       selectedLines.push(lines[i].substring(startColumn - 1));
     } else if (i === endLine - 1) {
-      selectedLines.push(lines[i].substring(0, endColumn - 1));
+      // endColumn is inclusive
+      selectedLines.push(lines[i].substring(0, endColumn));
     } else {
       selectedLines.push(lines[i]);
     }

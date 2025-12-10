@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { CodeReviewState, CodeReviewAction, CodeReviewSession } from '@/lib/types';
 import { generateId } from '@/lib/utils';
 import { saveSession } from '@/lib/storage';
+import { useDebouncedCallback } from 'use-debounce';
 
 // Initial state
 const initialState: CodeReviewState = {
@@ -91,6 +92,25 @@ function codeReviewReducer(state: CodeReviewState, action: CodeReviewAction): Co
                 }
               : thread
           ),
+        },
+      };
+
+    case 'DELETE_MESSAGE':
+      if (!state.currentSession) return state;
+      return {
+        ...state,
+        currentSession: {
+          ...state.currentSession,
+          threads: state.currentSession.threads.map(thread =>
+            thread.id === action.payload.threadId
+              ? {
+                  ...thread,
+                  messages: thread.messages.filter(msg => msg.id !== action.payload.messageId),
+                  updatedAt: new Date().toISOString(),
+                }
+              : thread
+          ),
+          updatedAt: new Date().toISOString(),
         },
       };
 
@@ -182,12 +202,18 @@ const CodeReviewContext = createContext<{
 export function CodeReviewProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(codeReviewReducer, initialState);
 
-  // Auto-save to localStorage when session changes
-  useEffect(() => {
-    if (state.currentSession && state.currentSession.code) {
-      saveSession(state.currentSession);
+  // Debounced auto-save to localStorage when session changes
+  const debouncedSave = useDebouncedCallback((session: CodeReviewSession) => {
+    if (session && session.code) {
+      saveSession(session);
     }
-  }, [state.currentSession]);
+  }, 1000);
+
+  useEffect(() => {
+    if (state.currentSession) {
+      debouncedSave(state.currentSession);
+    }
+  }, [state.currentSession, debouncedSave]);
 
   return (
     <CodeReviewContext.Provider value={{ state, dispatch }}>

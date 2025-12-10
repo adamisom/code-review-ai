@@ -67,6 +67,7 @@ export type CodeReviewAction =
   | { type: 'CREATE_THREAD'; payload: CodeThread }
   | { type: 'ADD_MESSAGE'; payload: { threadId: string; message: Message } }
   | { type: 'UPDATE_MESSAGE'; payload: { threadId: string; messageId: string; content: string } }
+  | { type: 'DELETE_MESSAGE'; payload: { threadId: string; messageId: string } }
   | { type: 'SET_ACTIVE_THREAD'; payload: string | null }
   | { type: 'UPDATE_THREAD_STATUS'; payload: { threadId: string; status: 'active' | 'resolved' } }
   | { type: 'DELETE_THREAD'; payload: string }
