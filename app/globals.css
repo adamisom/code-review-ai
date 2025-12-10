@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #1e1e1e;
+  --foreground: #d4d4d4;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}
+
+/* Monaco Editor custom styles */
+.monaco-editor-decoration {
+  position: relative;
+}
+
+/* Thread highlight colors */
+.thread-highlight-blue {
+  background-color: rgba(74, 158, 255, 0.1);
+  border-left: 3px solid #4a9eff;
+}
+
+.thread-highlight-purple {
+  background-color: rgba(168, 85, 247, 0.1);
+  border-left: 3px solid #a855f7;
+}
+
+.thread-highlight-green {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-left: 3px solid #22c55e;
+}
+
+.thread-highlight-orange {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-left: 3px solid #f59e0b;
+}
+
+.thread-highlight-pink {
+  background-color: rgba(236, 72, 153, 0.1);
+  border-left: 3px solid #ec4899;
+}
+
+.thread-highlight-cyan {
+  background-color: rgba(6, 182, 212, 0.1);
+  border-left: 3px solid #06b6d4;
+}
+
+.thread-highlight-yellow {
+  background-color: rgba(234, 179, 8, 0.1);
+  border-left: 3px solid #eab308;
+}
+
+.thread-highlight-red {
+  background-color: rgba(248, 113, 113, 0.1);
+  border-left: 3px solid #f87171;
+}
