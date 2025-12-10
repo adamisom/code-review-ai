@@ -14,8 +14,9 @@ import { truncateText } from '@/lib/utils';
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full flex-col gap-2">
       <div className="text-secondary">Loading editor...</div>
+      <div className="text-xs text-secondary/60">This may take a moment on first load</div>
     </div>
   ),
 });
@@ -27,6 +28,16 @@ export function CodeEditor() {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionMenuPosition, setActionMenuPosition] = useState({ top: 0, left: 0 });
   const [showThreadDialog, setShowThreadDialog] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Set timeout to show error if editor doesn't load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadingTimeout(true);
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
@@ -223,6 +234,28 @@ export function CodeEditor() {
       )
     : '';
 
+  if (loadingTimeout) {
+    return (
+      <div className="flex items-center justify-center h-full flex-col gap-4">
+        <div className="text-danger text-lg">Editor taking longer than expected to load</div>
+        <div className="text-sm text-secondary max-w-md text-center">
+          Monaco Editor may be downloading. Please check:
+          <ul className="list-disc list-inside mt-2 text-left">
+            <li>Browser console for errors</li>
+            <li>Network tab for failed requests</li>
+            <li>Try refreshing the page</li>
+          </ul>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition"
+        >
+          Reload Page
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full relative">
       <MonacoEditor
@@ -231,7 +264,10 @@ export function CodeEditor() {
         theme={state.editorTheme}
         value={state.currentSession?.code || '// Paste your code here or start typing...'}
         onChange={handleEditorChange}
-        onMount={handleEditorDidMount}
+        onMount={(editor) => {
+          setLoadingTimeout(false); // Clear timeout on successful mount
+          handleEditorDidMount(editor);
+        }}
         options={{
           minimap: { enabled: false },
           fontSize: 14,
