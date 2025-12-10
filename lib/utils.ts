@@ -99,7 +99,7 @@ export function getLineCount(code: string): number {
 }
 
 // Extract selected text from code given line/column range
-// Monaco uses 1-indexed positions, endColumn is inclusive
+// CodeMirror uses 1-indexed positions, endColumn is inclusive
 export function extractSelection(
   code: string,
   startLine: number,

@@ -34,7 +34,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## ✨ Features
 
-- 🎨 **Monaco Editor** - VS Code's editor with syntax highlighting for 50+ languages
+- 🎨 **CodeMirror Editor** - Fast, lightweight editor with syntax highlighting for 50+ languages
 - 💬 **Inline Comment Threads** - Tied to specific code sections with visual highlights
 - 🤖 **AI-Powered Reviews** - Using Claude 3.5 Sonnet with streaming responses
 - 🔄 **Real-time Streaming** - See AI responses as they're generated character by character
@@ -49,7 +49,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 📖 Usage
 
-1. **Paste Code**: Copy your code into the Monaco editor
+1. **Paste Code**: Copy your code into the CodeMirror editor
 2. **Select Section**: Highlight specific lines you want reviewed
 3. **Ask AI**: Press `Cmd+K` or click "Ask AI"
 4. **Get Feedback**: AI analyzes your code and provides contextual suggestions
@@ -60,7 +60,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
-- **Editor**: Monaco Editor (@monaco-editor/react)
+- **Editor**: CodeMirror 6 (@uiw/react-codemirror)
 - **AI**: Anthropic Claude 3.5 Sonnet
 - **Styling**: Tailwind CSS
 - **State**: React Context + useReducer
@@ -80,7 +80,7 @@ code-review-ai/
 ├── components/
 │   ├── providers/
 │   │   └── CodeReviewProvider.tsx # State management with auto-save
-│   ├── CodeEditor.tsx            # Monaco editor with selection & decorations
+│   ├── CodeEditor.tsx            # CodeMirror editor with selection & decorations
 │   ├── CommentThread.tsx         # Thread conversation UI with streaming
 │   ├── Header.tsx                # Top navigation with export & theme toggle
 │   ├── ThreadPanel.tsx           # Thread sidebar with active thread view
@@ -104,9 +104,9 @@ code-review-ai/
 ## ✅ What's Implemented
 
 ### Core Features
-- ✅ **Selection Handling** - Capture and track user text selection in Monaco Editor
+- ✅ **Selection Handling** - Capture and track user text selection in CodeMirror Editor
 - ✅ **Thread Creation Flow** - Dialog to create new threads from code selection
-- ✅ **Monaco Decorations** - Colored highlights and gutter icons for thread ranges
+- ✅ **CodeMirror Decorations** - Colored highlights and gutter icons for thread ranges
 - ✅ **CommentThread Component** - Full conversation UI with message history
 - ✅ **AI Integration** - Connected to Claude API with streaming responses
 - ✅ **Message Streaming** - Real-time character-by-character response updates
@@ -164,7 +164,7 @@ npm run verify
 - Verify API key is set correctly in `.env.local`
 - Use React DevTools to inspect state
 - Check Network tab for API calls
-- Use Monaco Editor's built-in debugging tools
+- Use CodeMirror Editor's built-in debugging tools
 
 ### Code Structure
 
@@ -185,7 +185,7 @@ npm run verify
 
 ## 🎯 How It Works
 
-1. **Code Selection**: Select code in the Monaco editor
+1. **Code Selection**: Select code in the CodeMirror editor
 2. **Thread Creation**: Press `Cmd+K` or click "Ask AI" to create a thread
 3. **AI Review**: Ask questions and get streaming AI responses
 4. **Multiple Threads**: Create independent threads for different code sections

@@ -4,93 +4,283 @@ import { useCodeReview } from './providers/CodeReviewProvider';
 import { SelectionActionMenu } from './SelectionActionMenu';
 import { ThreadCreationDialog } from './ThreadCreationDialog';
 import { generateId, getNextThreadColor, extractSelection, detectLanguage } from '@/lib/utils';
-import { CodeThread, Message } from '@/lib/types';
+import { CodeThread } from '@/lib/types';
 import dynamic from 'next/dynamic';
-import { useRef, useState, useEffect } from 'react';
-import type { editor } from 'monaco-editor';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { truncateText } from '@/lib/utils';
+import CodeMirror from '@uiw/react-codemirror';
+import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from '@codemirror/view';
+import { EditorState, Extension, StateField, StateEffect, RangeSetBuilder } from '@codemirror/state';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
+import { json } from '@codemirror/lang-json';
+import { html } from '@codemirror/lang-html';
+import { css } from '@codemirror/lang-css';
 
-// Monaco Editor is loaded dynamically (client-side only)
-const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
+// CodeMirror is loaded dynamically (client-side only)
+const CodeMirrorEditor = dynamic(() => Promise.resolve(CodeMirror), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-full flex-col gap-2">
       <div className="text-secondary">Loading editor...</div>
-      <div className="text-xs text-secondary/60">This may take a moment on first load</div>
+      <div className="text-xs text-secondary/60 text-center max-w-md px-4">
+        First load may take a few seconds. Subsequent loads are faster.
+      </div>
     </div>
   ),
 });
 
+// Helper to get language extension
+function getLanguageExtension(language: string): Extension {
+  switch (language) {
+    case 'javascript':
+    case 'js':
+    case 'jsx':
+      return javascript({ jsx: true });
+    case 'typescript':
+    case 'ts':
+    case 'tsx':
+      return javascript({ jsx: true, typescript: true });
+    case 'python':
+    case 'py':
+      return python();
+    case 'json':
+      return json();
+    case 'html':
+      return html();
+    case 'css':
+      return css();
+    default:
+      return [];
+  }
+}
+
+// Thread decoration widget
+class ThreadWidget extends WidgetType {
+  constructor(private color: string, private isActive: boolean) {
+    super();
+  }
+
+  toDOM() {
+    const span = document.createElement('span');
+    span.className = `thread-glyph-${this.color}`;
+    span.style.cssText = `
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 4px;
+      ${this.isActive ? 'opacity: 1;' : 'opacity: 0.7;'}
+    `;
+    return span;
+  }
+}
+
+// Helper to convert 1-indexed line/column to CodeMirror position
+function getPosition(state: EditorState, line: number, column: number): number {
+  try {
+    const lineObj = state.doc.line(line);
+    return lineObj.from + column - 1;
+  } catch {
+    return 0;
+  }
+}
+
+// Create decoration for thread highlight
+function createThreadDecoration(thread: CodeThread, isActive: boolean, state: EditorState): { decoration: Decoration; from: number; to: number } {
+  const from = getPosition(state, thread.startLine, thread.startColumn);
+  const to = getPosition(state, thread.endLine, thread.endColumn);
+  
+  const className = `thread-highlight-${thread.color}${isActive ? ' thread-highlight-active' : ''}`;
+  
+  const decoration = Decoration.mark({
+    class: className,
+    attributes: {
+      title: `Thread: ${truncateText(thread.messages[0]?.content || '', 50)}`,
+    },
+  });
+  
+  return { decoration, from, to };
+}
+
+// Create gutter decoration for thread
+function createGutterDecoration(thread: CodeThread, isActive: boolean, state: EditorState): { decoration: Decoration | null; from: number; to: number } {
+  try {
+    const line = state.doc.line(thread.startLine);
+    const decoration = Decoration.widget({
+      widget: new ThreadWidget(thread.color, isActive),
+      side: -1,
+    });
+    
+    return { decoration, from: line.from, to: line.from };
+  } catch {
+    return { decoration: null, from: 0, to: 0 };
+  }
+}
+
+// Thread decorations state field
+const threadDecorations = StateField.define<DecorationSet>({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations, tr) {
+    decorations = decorations.map(tr.changes);
+    return decorations;
+  },
+  provide: f => EditorView.decorations.from(f),
+});
+
+// Effect to update thread decorations
+const setThreadDecorations = StateEffect.define<{ threads: CodeThread[]; activeThreadId: string | null }>();
+
+// Plugin to handle thread decorations
+const threadDecorationsPlugin = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+
+    constructor(view: EditorView) {
+      this.decorations = Decoration.none;
+    }
+
+    update(update: ViewUpdate) {
+      for (const tr of update.transactions) {
+        const threadData = tr.effects.find(e => e.is(setThreadDecorations));
+        if (threadData) {
+          const { threads, activeThreadId } = threadData.value;
+          const builder = new RangeSetBuilder<Decoration>();
+          
+          threads.forEach(thread => {
+            const isActive = thread.id === activeThreadId;
+            try {
+              const { decoration: markDeco, from, to } = createThreadDecoration(thread, isActive, update.state);
+              builder.add(from, to, markDeco);
+              
+              const { decoration: gutterDeco, from: gutterFrom, to: gutterTo } = createGutterDecoration(thread, isActive, update.state);
+              if (gutterDeco) {
+                builder.add(gutterFrom, gutterTo, gutterDeco);
+              }
+            } catch (e) {
+              // Skip invalid ranges
+              console.warn('Invalid thread range:', thread, e);
+            }
+          });
+          
+          this.decorations = builder.finish();
+        }
+      }
+    }
+  },
+  {
+    decorations: v => v.decorations,
+  }
+);
+
 export function CodeEditor() {
   const { state, dispatch } = useCodeReview();
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const decorationIdsRef = useRef<string[]>([]);
+  const viewRef = useRef<EditorView | null>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionMenuPosition, setActionMenuPosition] = useState({ top: 0, left: 0 });
   const [showThreadDialog, setShowThreadDialog] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
-  // Set timeout to show error if editor doesn't load
+  // Set timeout to show warning only if editor truly fails to load
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoadingTimeout(true);
-    }, 10000); // 10 second timeout
+    }, 30000); // 30 second timeout
 
     return () => clearTimeout(timer);
   }, []);
 
-  const handleEditorChange = (value: string | undefined) => {
-    if (value !== undefined) {
-      // Auto-detect language if code changes significantly
-      const detectedLanguage = detectLanguage(value, state.currentSession?.fileName);
-      dispatch({
-        type: 'SET_CODE',
-        payload: {
-          code: value,
-          language: detectedLanguage,
-        },
+  // Language extension
+  const languageExtension = useMemo(() => {
+    return getLanguageExtension(state.editorLanguage);
+  }, [state.editorLanguage]);
+
+  // Theme extension
+  const themeExtension = useMemo(() => {
+    return state.editorTheme === 'vs-dark' ? oneDark : [];
+  }, [state.editorTheme]);
+
+  // Thread decorations extension
+  const threadDecorationsExtension = useMemo(() => {
+    return [
+      threadDecorations,
+      threadDecorationsPlugin,
+    ];
+  }, []);
+
+  // Update thread decorations when threads change
+  useEffect(() => {
+    if (!viewRef.current || !state.currentSession) return;
+    
+    const threads = state.currentSession.threads || [];
+    const activeThreadId = state.activeThreadId;
+    
+    if (threads.length > 0) {
+      viewRef.current.dispatch({
+        effects: setThreadDecorations.of({ threads, activeThreadId }),
       });
     }
+  }, [state.currentSession, state.activeThreadId]);
+
+  const handleEditorChange = (value: string) => {
+    // Auto-detect language if code changes significantly
+    const detectedLanguage = detectLanguage(value, state.currentSession?.fileName);
+    dispatch({
+      type: 'SET_CODE',
+      payload: {
+        code: value,
+        language: detectedLanguage,
+      },
+    });
   };
 
-  const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
-    editorRef.current = editor;
+  const handleSelectionChange = (update: ViewUpdate) => {
+    if (!update.selectionSet) return;
+    
+    const selection = update.state.selection.main;
+    if (selection.empty) {
+      dispatch({ type: 'SET_SELECTION', payload: null });
+      setShowActionMenu(false);
+      return;
+    }
 
-    editor.onDidChangeCursorSelection((e) => {
-      const selection = e.selection;
-      if (!selection.isEmpty()) {
-        const selectedText = editor.getModel()?.getValueInRange(selection) || '';
-        if (selectedText.trim()) {
-          dispatch({
-            type: 'SET_SELECTION',
-            payload: {
-              startLine: selection.startLineNumber,
-              endLine: selection.endLineNumber,
-              startColumn: selection.startColumn,
-              endColumn: selection.endColumn,
-            },
-          });
+    const selectedText = update.state.sliceDoc(selection.from, selection.to);
+    if (!selectedText.trim()) {
+      dispatch({ type: 'SET_SELECTION', payload: null });
+      setShowActionMenu(false);
+      return;
+    }
 
-          // Show action menu near selection
-          const position = editor.getScrolledVisiblePosition(selection.getStartPosition());
-          if (position) {
-            const coords = editor.getScrolledVisiblePosition(selection.getEndPosition());
-            if (coords) {
-              const top = coords.top + 20;
-              const left = coords.left + 10;
-              setActionMenuPosition({ top, left });
-              setShowActionMenu(true);
-            }
-          }
-        } else {
-          dispatch({ type: 'SET_SELECTION', payload: null });
-          setShowActionMenu(false);
-        }
-      } else {
-        dispatch({ type: 'SET_SELECTION', payload: null });
-        setShowActionMenu(false);
-      }
+    // Convert 0-indexed positions to 1-indexed line/column
+    const startLine = update.state.doc.lineAt(selection.from);
+    const endLine = update.state.doc.lineAt(selection.to);
+    
+    const startLineNumber = startLine.number;
+    const startColumn = selection.from - startLine.from + 1;
+    const endLineNumber = endLine.number;
+    const endColumn = selection.to - endLine.from + 1;
+
+    dispatch({
+      type: 'SET_SELECTION',
+      payload: {
+        startLine: startLineNumber,
+        endLine: endLineNumber,
+        startColumn,
+        endColumn,
+      },
     });
+
+    // Show action menu near selection
+    const coords = update.view.coordsAtPos(selection.to);
+    if (coords) {
+      setActionMenuPosition({ 
+        top: coords.top + window.scrollY + 20, 
+        left: coords.left + window.scrollX + 10 
+      });
+      setShowActionMenu(true);
+    }
   };
 
   const handleAskAI = () => {
@@ -159,71 +349,6 @@ export function CodeEditor() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.selectedRange, state.currentSession]);
 
-  // Monaco decorations for thread ranges
-  useEffect(() => {
-    if (!editorRef.current || !state.currentSession) {
-      // Clean up decorations if no session
-      if (editorRef.current && decorationIdsRef.current.length > 0) {
-        editorRef.current.deltaDecorations(decorationIdsRef.current, []);
-        decorationIdsRef.current = [];
-      }
-      return;
-    }
-
-    const editor = editorRef.current;
-    const model = editor.getModel();
-    if (!model) return;
-
-    // Dynamically import Range to avoid SSR issues
-    import('monaco-editor').then((monaco) => {
-      const threads = state.currentSession?.threads || [];
-      
-      // Clean up old decorations
-      if (decorationIdsRef.current.length > 0) {
-        editor.deltaDecorations(decorationIdsRef.current, []);
-        decorationIdsRef.current = [];
-      }
-
-      if (threads.length === 0) {
-        return;
-      }
-
-      const decorations = threads.map((thread) => {
-        const isActive = thread.id === state.activeThreadId;
-        const className = `thread-highlight-${thread.color}${isActive ? ' thread-highlight-active' : ''}`;
-        const inlineClassName = `thread-inline-${thread.color}`;
-        const glyphClassName = `thread-glyph-${thread.color}`;
-
-        return {
-          range: new monaco.Range(
-            thread.startLine,
-            thread.startColumn,
-            thread.endLine,
-            thread.endColumn
-          ),
-          options: {
-            className,
-            isWholeLine: false,
-            inlineClassName,
-            glyphMarginClassName: glyphClassName,
-            hoverMessage: {
-              value: `Thread: ${truncateText(thread.messages[0]?.content || '', 50)}`,
-            },
-          },
-        };
-      });
-
-      decorationIdsRef.current = editor.deltaDecorations([], decorations);
-    });
-
-    return () => {
-      if (editorRef.current && decorationIdsRef.current.length > 0) {
-        editorRef.current.deltaDecorations(decorationIdsRef.current, []);
-        decorationIdsRef.current = [];
-      }
-    };
-  }, [state.currentSession, state.activeThreadId]);
-
   const selectedCode = state.selectedRange && state.currentSession
     ? extractSelection(
         state.currentSession.code,
@@ -234,15 +359,41 @@ export function CodeEditor() {
       )
     : '';
 
+  // Extensions for CodeMirror
+  const extensions = useMemo(() => {
+    return [
+      languageExtension,
+      themeExtension,
+      ...threadDecorationsExtension,
+      EditorView.theme({
+        '&': {
+          fontSize: '14px',
+          fontFamily: 'Fira Code, Menlo, Monaco, Courier New, monospace',
+        },
+        '.cm-content': {
+          padding: '16px',
+        },
+        '.cm-editor': {
+          height: '100%',
+        },
+        '.cm-scroller': {
+          overflow: 'auto',
+        },
+      }),
+      EditorState.tabSize.of(2),
+      EditorView.lineWrapping,
+    ];
+  }, [languageExtension, themeExtension, threadDecorationsExtension]);
+
   if (loadingTimeout) {
     return (
       <div className="flex items-center justify-center h-full flex-col gap-4">
-        <div className="text-danger text-lg">Editor taking longer than expected to load</div>
+        <div className="text-warning text-lg">Editor is taking longer than expected</div>
         <div className="text-sm text-secondary max-w-md text-center">
-          Monaco Editor may be downloading. Please check:
+          If the editor hasn&apos;t loaded after 30 seconds, there may be an issue:
           <ul className="list-disc list-inside mt-2 text-left">
-            <li>Browser console for errors</li>
-            <li>Network tab for failed requests</li>
+            <li>Check browser console for errors (F12)</li>
+            <li>Check Network tab for failed requests</li>
             <li>Try refreshing the page</li>
           </ul>
         </div>
@@ -258,26 +409,23 @@ export function CodeEditor() {
 
   return (
     <div className="h-full w-full relative">
-      <MonacoEditor
-        height="100%"
-        language={state.editorLanguage}
-        theme={state.editorTheme}
+      <CodeMirrorEditor
         value={state.currentSession?.code || '// Paste your code here or start typing...'}
+        height="100%"
+        extensions={extensions}
         onChange={handleEditorChange}
-        onMount={(editor) => {
-          setLoadingTimeout(false); // Clear timeout on successful mount
-          handleEditorDidMount(editor);
+        onUpdate={(update) => {
+          if (update.view && !viewRef.current) {
+            viewRef.current = update.view;
+            setLoadingTimeout(false);
+          }
+          handleSelectionChange(update);
         }}
-        options={{
-          minimap: { enabled: false },
-          fontSize: 14,
-          fontFamily: 'Fira Code, Menlo, Monaco, Courier New, monospace',
-          lineNumbers: 'on',
-          roundedSelection: true,
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          tabSize: 2,
-          wordWrap: 'on',
+        basicSetup={{
+          lineNumbers: true,
+          foldGutter: true,
+          dropCursor: false,
+          allowMultipleSelections: false,
         }}
       />
       {showActionMenu && state.selectedRange && (

@@ -53,7 +53,7 @@ export interface CodeReviewState {
   
   // Editor state
   editorLanguage: string;
-  editorTheme: 'vs-dark' | 'vs-light';
+  editorTheme: 'vs-dark' | 'vs-light'; // CodeMirror uses same theme names for compatibility
   
   // Loading states
   isLoadingAI: boolean;

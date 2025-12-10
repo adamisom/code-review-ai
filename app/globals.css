@@ -38,8 +38,8 @@ body {
   background: #5a5a5a;
 }
 
-/* Monaco Editor custom styles */
-.monaco-editor-decoration {
+/* CodeMirror Editor custom styles */
+.cm-editor {
   position: relative;
 }
 
