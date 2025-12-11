@@ -32,27 +32,31 @@ export function formatTimestamp(timestamp: string): string {
 
 // Detect programming language from code content or filename
 export function detectLanguage(code: string, fileName?: string): string {
-  // Try file extension first
+  // Try file extension first (most reliable)
   if (fileName) {
     const ext = fileName.split('.').pop()?.toLowerCase();
     const extensionMap: Record<string, string> = {
       'ts': 'typescript',
-      'tsx': 'typescript',
+      'tsx': 'tsx', // Distinguish TSX from TS
       'js': 'javascript',
-      'jsx': 'javascript',
+      'jsx': 'jsx', // Distinguish JSX from JS
       'py': 'python',
       'rb': 'ruby',
       'go': 'go',
       'rs': 'rust',
       'java': 'java',
       'cpp': 'cpp',
+      'cc': 'cpp',
+      'cxx': 'cpp',
       'c': 'c',
+      'h': 'c',
       'cs': 'csharp',
       'php': 'php',
       'swift': 'swift',
       'kt': 'kotlin',
       'sql': 'sql',
       'html': 'html',
+      'htm': 'html',
       'css': 'css',
       'json': 'json',
       'md': 'markdown',
@@ -60,6 +64,8 @@ export function detectLanguage(code: string, fileName?: string): string {
       'yml': 'yaml',
       'sh': 'shell',
       'bash': 'shell',
+      'zsh': 'shell',
+      'fish': 'shell',
     };
     
     if (ext && extensionMap[ext]) {
@@ -67,15 +73,95 @@ export function detectLanguage(code: string, fileName?: string): string {
     }
   }
 
-  // Heuristic detection based on code content
-  if (code.includes('def ') && code.includes('import ')) return 'python';
-  if (code.includes('function') && code.includes('const')) return 'typescript';
-  if (code.includes('func ') && code.includes('package ')) return 'go';
-  if (code.includes('fn ') && code.includes('let ')) return 'rust';
-  if (code.includes('class ') && code.includes('public')) return 'java';
-  if (code.includes('<?php')) return 'php';
-  if (code.includes('<!DOCTYPE html>')) return 'html';
+  // Improved heuristic detection based on code content
+  const trimmedCode = code.trim();
+  if (!trimmedCode) return 'plaintext';
+
+  // Check for JSX/TSX patterns first (most specific)
+  const hasJSX = /<[A-Z]\w+/.test(code) || 
+                 /<[a-z]+\.[A-Z]/.test(code) ||
+                 code.includes('</') ||
+                 /return\s*\(?\s*</.test(code);
   
+  // TypeScript detection (check for type annotations, interfaces, etc.)
+  const hasTypeScript = /:\s*\w+(\s*[=,;\)\]\}])/.test(code) || 
+                        code.includes('interface ') || 
+                        code.includes('type ') ||
+                        code.includes('enum ') ||
+                        /as\s+\w+/.test(code) ||
+                        /React\.FC|React\.Component/.test(code);
+  
+  // Check TSX first (TypeScript + JSX)
+  if (hasTypeScript && hasJSX) return 'tsx';
+  // Then check JSX alone
+  if (hasJSX) return 'jsx';
+  // Then check TypeScript alone
+  if (hasTypeScript) return 'typescript';
+
+  // JavaScript detection
+  if ((code.includes('function') || code.includes('const ') || code.includes('let ') || code.includes('var ')) &&
+      (code.includes('=>') || code.includes('()') || code.includes('{}'))) {
+    return 'javascript';
+  }
+
+  // Python detection (more specific)
+  if ((code.includes('def ') || code.includes('class ')) && 
+      (code.includes('import ') || code.includes('from ') || /:\s*$/.test(code))) {
+    return 'python';
+  }
+
+  // Go detection
+  if (code.includes('func ') && code.includes('package ')) return 'go';
+  if (code.includes('package ') && code.includes('import (')) return 'go';
+
+  // Rust detection
+  if (code.includes('fn ') && (code.includes('let ') || code.includes('mut '))) return 'rust';
+  if (code.includes('use ') && code.includes('::')) return 'rust';
+
+  // Java detection
+  if (code.includes('public class') || (code.includes('class ') && code.includes('public '))) return 'java';
+  if (code.includes('@') && code.includes('class ')) return 'java'; // Annotations
+
+  // PHP detection
+  if (code.includes('<?php') || code.includes('<?=')) return 'php';
+
+  // HTML detection
+  if (code.includes('<!DOCTYPE') || code.includes('<html') || code.includes('<body')) return 'html';
+  if (/<[a-z]+[^>]*>/.test(code) && code.includes('</')) return 'html';
+
+  // CSS detection
+  if (code.includes('{') && code.includes('}') && /[a-z-]+:\s*[^;]+;/.test(code)) return 'css';
+
+  // JSON detection
+  if ((code.trim().startsWith('{') || code.trim().startsWith('[')) && 
+      code.includes('"') && code.includes(':')) {
+    try {
+      JSON.parse(code);
+      return 'json';
+    } catch {
+      // Not valid JSON, continue
+    }
+  }
+
+  // Shell script detection
+  if (code.startsWith('#!/bin/') || code.startsWith('#!/usr/bin/')) return 'shell';
+  if (/^\$\w+\s*=/.test(code) || code.includes('if [') || code.includes('then')) return 'shell';
+
+  // SQL detection
+  if (/SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP/i.test(code) && 
+      /FROM|INTO|SET|WHERE/i.test(code)) {
+    return 'sql';
+  }
+
+  // Ruby detection
+  if (code.includes('def ') && code.includes('end') && !code.includes('import ')) return 'ruby';
+  if (code.includes('class ') && code.includes('end') && !code.includes('{')) return 'ruby';
+
+  // C/C++ detection
+  if (code.includes('#include') && (code.includes('int main') || code.includes('void main'))) {
+    return code.includes('iostream') || code.includes('namespace') ? 'cpp' : 'c';
+  }
+
   return 'plaintext';
 }
 

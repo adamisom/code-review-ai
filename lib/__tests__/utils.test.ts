@@ -84,13 +84,18 @@ describe('utils', () => {
   describe('detectLanguage', () => {
     it('should detect language from file extension', () => {
       expect(detectLanguage('', 'test.ts')).toBe('typescript');
+      expect(detectLanguage('', 'test.tsx')).toBe('tsx');
       expect(detectLanguage('', 'test.js')).toBe('javascript');
+      expect(detectLanguage('', 'test.jsx')).toBe('jsx');
       expect(detectLanguage('', 'test.py')).toBe('python');
     });
 
     it('should detect language from code content', () => {
       expect(detectLanguage('def hello():\n    pass\nimport os', '')).toBe('python');
-      expect(detectLanguage('function test() {\n  const x = 1;\n}', '')).toBe('typescript');
+      expect(detectLanguage('function test() {\n  const x = 1;\n}', '')).toBe('javascript');
+      expect(detectLanguage('function test(): string {\n  const x: number = 1;\n}', '')).toBe('typescript');
+      expect(detectLanguage('const Component = () => {\n  return <div>Hello</div>;\n}', '')).toBe('jsx');
+      expect(detectLanguage('const Component: React.FC = () => {\n  return <div>Hello</div>;\n}', '')).toBe('tsx');
     });
 
     it('should return plaintext for unknown', () => {

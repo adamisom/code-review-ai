@@ -124,7 +124,34 @@ ${thread.messages.map((m) => `**${m.role === 'user' ? 'User' : 'AI'}** (${new Da
                 </span>
               )}
               <span className="text-sm text-secondary">•</span>
-              <span className="text-sm text-secondary">{state.editorLanguage}</span>
+              <select
+                value={state.editorLanguage}
+                onChange={(e) => dispatch({ type: 'SET_LANGUAGE', payload: e.target.value })}
+                className="text-sm text-secondary bg-transparent border border-border rounded px-2 py-1 hover:bg-border/30 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                title="Select language for syntax highlighting"
+              >
+                <option value="plaintext">Plain Text</option>
+                <option value="typescript">TypeScript</option>
+                <option value="tsx">TSX (React)</option>
+                <option value="javascript">JavaScript</option>
+                <option value="jsx">JSX (React)</option>
+                <option value="python">Python</option>
+                <option value="json">JSON</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="go">Go</option>
+                <option value="rust">Rust</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
+                <option value="c">C</option>
+                <option value="csharp">C#</option>
+                <option value="php">PHP</option>
+                <option value="ruby">Ruby</option>
+                <option value="sql">SQL</option>
+                <option value="shell">Shell</option>
+                <option value="yaml">YAML</option>
+                <option value="markdown">Markdown</option>
+              </select>
             </div>
           )}
         </div>

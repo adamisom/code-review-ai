@@ -32,13 +32,15 @@ const CodeMirrorEditor = dynamic(() => Promise.resolve(CodeMirror), {
 
 // Helper to get language extension
 function getLanguageExtension(language: string): Extension {
-  switch (language) {
+  switch (language.toLowerCase()) {
     case 'javascript':
     case 'js':
+      return javascript({ jsx: false });
     case 'jsx':
       return javascript({ jsx: true });
     case 'typescript':
     case 'ts':
+      return javascript({ jsx: false, typescript: true });
     case 'tsx':
       return javascript({ jsx: true, typescript: true });
     case 'python':
@@ -245,13 +247,18 @@ export function CodeEditor() {
   }, [state.currentSession, state.activeThreadId]);
 
   const handleEditorChange = (value: string) => {
-    // Auto-detect language if code changes significantly
-    const detectedLanguage = detectLanguage(value, state.currentSession?.fileName);
-      dispatch({
-        type: 'SET_CODE',
-        payload: {
-          code: value,
-        language: detectedLanguage,
+    // Auto-detect language only if currently plaintext (don't override manual selection)
+    let language = state.editorLanguage;
+    if (language === 'plaintext' || !state.currentSession) {
+      language = detectLanguage(value, state.currentSession?.fileName);
+    }
+    
+    dispatch({
+      type: 'SET_CODE',
+      payload: {
+        code: value,
+        language: language,
+        fileName: state.currentSession?.fileName,
       },
     });
   };

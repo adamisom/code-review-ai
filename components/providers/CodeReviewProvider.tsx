@@ -179,6 +179,11 @@ function codeReviewReducer(state: CodeReviewState, action: CodeReviewAction): Co
       return {
         ...state,
         editorLanguage: action.payload,
+        currentSession: state.currentSession ? {
+          ...state.currentSession,
+          language: action.payload,
+          updatedAt: new Date().toISOString(),
+        } : null,
       };
 
     case 'SET_THEME':
