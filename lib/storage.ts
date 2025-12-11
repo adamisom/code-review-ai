@@ -53,12 +53,6 @@ export function saveSession(session: CodeReviewSession): void {
   saveSessions(sessions);
 }
 
-// Load a specific session by ID
-export function loadSession(sessionId: string): CodeReviewSession | null {
-  const sessions = loadSessions();
-  return sessions.find(s => s.id === sessionId) || null;
-}
-
 // Delete a session
 export function deleteSession(sessionId: string): void {
   const sessions = loadSessions();
@@ -73,27 +67,4 @@ export function clearAllSessions(): void {
   } catch (error) {
     console.error('Failed to clear localStorage:', error);
   }
-}
-
-// Get storage usage info
-export function getStorageInfo(): { used: number; total: number; percentage: number } {
-  let used = 0;
-  let total = 5 * 1024 * 1024; // 5MB typical localStorage limit
-  
-  try {
-    // Calculate approximate storage used
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
-        used += localStorage[key].length + key.length;
-      }
-    }
-  } catch (error) {
-    console.error('Failed to calculate storage usage:', error);
-  }
-  
-  return {
-    used,
-    total,
-    percentage: (used / total) * 100
-  };
 }

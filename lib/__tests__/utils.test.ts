@@ -4,7 +4,6 @@ import {
   formatTimestamp,
   detectLanguage,
   truncateText,
-  rangesOverlap,
   extractSelection,
 } from '../utils';
 import { CodeThread, THREAD_COLORS } from '../types';
@@ -115,18 +114,6 @@ describe('utils', () => {
       const shortText = 'short';
       const result = truncateText(shortText, 100);
       expect(result).toBe(shortText);
-    });
-  });
-
-  describe('rangesOverlap', () => {
-    it('should detect overlapping ranges', () => {
-      expect(rangesOverlap({ start: 1, end: 5 }, { start: 3, end: 7 })).toBe(true);
-      expect(rangesOverlap({ start: 1, end: 3 }, { start: 3, end: 5 })).toBe(true);
-    });
-
-    it('should detect non-overlapping ranges', () => {
-      expect(rangesOverlap({ start: 1, end: 2 }, { start: 3, end: 5 })).toBe(false);
-      expect(rangesOverlap({ start: 5, end: 7 }, { start: 1, end: 3 })).toBe(false);
     });
   });
 

@@ -1,7 +1,6 @@
 import {
   saveSession,
   loadSessions,
-  loadSession,
   deleteSession,
   clearAllSessions,
 } from '../storage';
@@ -90,29 +89,6 @@ describe('storage', () => {
       saveSession(session);
       const sessions = loadSessions();
       expect(sessions).toHaveLength(1);
-    });
-  });
-
-  describe('loadSession', () => {
-    it('should load specific session by ID', () => {
-      const session: CodeReviewSession = {
-        id: 'test-id',
-        code: 'test code',
-        language: 'typescript',
-        threads: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      saveSession(session);
-      const loaded = loadSession('test-id');
-      expect(loaded).toBeTruthy();
-      expect(loaded?.id).toBe('test-id');
-    });
-
-    it('should return null for non-existent session', () => {
-      const loaded = loadSession('non-existent');
-      expect(loaded).toBeNull();
     });
   });
 

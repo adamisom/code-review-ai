@@ -171,19 +171,6 @@ export function truncateText(text: string, maxLength: number = 100): string {
   return text.substring(0, maxLength) + '...';
 }
 
-// Check if two line ranges overlap
-export function rangesOverlap(
-  range1: { start: number; end: number },
-  range2: { start: number; end: number }
-): boolean {
-  return range1.start <= range2.end && range2.start <= range1.end;
-}
-
-// Get line count from code
-export function getLineCount(code: string): number {
-  return code.split('\n').length;
-}
-
 // Extract selected text from code given line/column range
 // CodeMirror uses 1-indexed positions, endColumn is inclusive
 export function extractSelection(
@@ -213,11 +200,6 @@ export function extractSelection(
   }
   
   return selectedLines.join('\n');
-}
-
-// Tailwind CSS utility for merging class names
-export function cn(...classes: (string | undefined | null | false)[]): string {
-  return classes.filter(Boolean).join(' ');
 }
 
 // Parse code suggestions from markdown content
