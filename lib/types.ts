@@ -1,10 +1,18 @@
 // Core data models for the code review application
 
+export interface CodeSuggestion {
+  originalCode: string;
+  suggestedCode: string;
+  language?: string;
+  description?: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  suggestions?: CodeSuggestion[];
   metadata?: {
     tokensUsed?: number;
     responseTime?: number;
@@ -77,7 +85,8 @@ export type CodeReviewAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_LANGUAGE'; payload: string }
   | { type: 'SET_THEME'; payload: 'vs-dark' | 'vs-light' }
-  | { type: 'SET_FILE_NAME'; payload: string };
+  | { type: 'SET_FILE_NAME'; payload: string }
+  | { type: 'APPLY_CODE_SUGGESTION'; payload: { threadId: string; originalCode: string; suggestedCode: string } };
 
 // API request/response types
 export interface ReviewRequest {

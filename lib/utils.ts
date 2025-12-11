@@ -133,3 +133,100 @@ export function extractSelection(
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
+
+// Parse code suggestions from markdown content
+// Looks for code blocks that might contain suggested code changes
+export function parseCodeSuggestions(
+  markdownContent: string,
+  originalCode: string,
+  language?: string
+): Array<{ originalCode: string; suggestedCode: string; description?: string }> {
+  const suggestions: Array<{ originalCode: string; suggestedCode: string; description?: string }> = [];
+  
+  // Match code blocks in markdown (```language\ncode\n```)
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  const matches = Array.from(markdownContent.matchAll(codeBlockRegex));
+  
+  if (matches.length === 0) return suggestions;
+  
+  // Look for patterns that suggest code changes:
+  // 1. Code blocks with language matching the original
+  // 2. Code blocks that are similar in structure to the original
+  // 3. Code blocks preceded by text like "Here's a better version" or "Suggested change"
+  
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const blockLanguage = match[1]?.toLowerCase() || '';
+    const codeContent = match[2].trim();
+    
+    // Check if this looks like a suggestion
+    const beforeText = markdownContent.substring(0, match.index || 0);
+    const isSuggestion = 
+      /suggest|better|improved|refactor|alternative|here'?s|try this/i.test(beforeText.slice(-200)) ||
+      blockLanguage === language?.toLowerCase() ||
+      codeContent.length > 20; // Reasonable code length
+    
+    if (isSuggestion && codeContent !== originalCode.trim()) {
+      // Try to find context description
+      const contextMatch = beforeText.match(/(?:here'?s|suggest|better|improved|alternative)[^`]*$/i);
+      const description = contextMatch?.[0]?.trim() || undefined;
+      
+      suggestions.push({
+        originalCode: originalCode,
+        suggestedCode: codeContent,
+        description: description,
+      });
+    }
+  }
+  
+  return suggestions;
+}
+
+// Simple diff algorithm to highlight changes
+export function computeDiff(original: string, suggested: string): Array<{ type: 'equal' | 'delete' | 'insert'; text: string }> {
+  const originalLines = original.split('\n');
+  const suggestedLines = suggested.split('\n');
+  const diff: Array<{ type: 'equal' | 'delete' | 'insert'; text: string }> = [];
+  
+  let i = 0;
+  let j = 0;
+  
+  while (i < originalLines.length || j < suggestedLines.length) {
+    if (i >= originalLines.length) {
+      // Only suggested lines left
+      diff.push({ type: 'insert', text: suggestedLines[j] });
+      j++;
+    } else if (j >= suggestedLines.length) {
+      // Only original lines left
+      diff.push({ type: 'delete', text: originalLines[i] });
+      i++;
+    } else if (originalLines[i] === suggestedLines[j]) {
+      // Lines match
+      diff.push({ type: 'equal', text: originalLines[i] });
+      i++;
+      j++;
+    } else {
+      // Lines differ - check if it's a simple modification
+      const nextOriginal = i + 1 < originalLines.length ? originalLines[i + 1] : null;
+      const nextSuggested = j + 1 < suggestedLines.length ? suggestedLines[j + 1] : null;
+      
+      if (nextOriginal === suggestedLines[j]) {
+        // Original line was deleted
+        diff.push({ type: 'delete', text: originalLines[i] });
+        i++;
+      } else if (nextSuggested === originalLines[i]) {
+        // Suggested line was inserted
+        diff.push({ type: 'insert', text: suggestedLines[j] });
+        j++;
+      } else {
+        // Both lines changed
+        diff.push({ type: 'delete', text: originalLines[i] });
+        diff.push({ type: 'insert', text: suggestedLines[j] });
+        i++;
+        j++;
+      }
+    }
+  }
+  
+  return diff;
+}

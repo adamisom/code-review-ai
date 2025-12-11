@@ -1,10 +1,11 @@
 'use client';
 
-import { CodeThread, Message } from '@/lib/types';
+import { CodeThread, Message, CodeSuggestion } from '@/lib/types';
 import { useCodeReview } from './providers/CodeReviewProvider';
-import { generateId } from '@/lib/utils';
-import { useState, useEffect, useRef } from 'react';
+import { generateId, parseCodeSuggestions } from '@/lib/utils';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { DiffView } from './DiffView';
 
 interface CommentThreadProps {
   thread: CodeThread;
@@ -17,6 +18,63 @@ export function CommentThread({ thread, onClose }: CommentThreadProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasAutoRespondedRef = useRef<string | null>(null);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
+
+  // Parse code suggestions from assistant messages
+  const messageSuggestions = useMemo(() => {
+    const suggestions: Map<string, CodeSuggestion[]> = new Map();
+    
+    thread.messages.forEach((message) => {
+      if (message.role === 'assistant' && message.content) {
+        const parsed = parseCodeSuggestions(
+          message.content,
+          thread.selectedCode,
+          state.currentSession?.language
+        );
+        if (parsed.length > 0) {
+          suggestions.set(message.id, parsed);
+        }
+      }
+    });
+    
+    return suggestions;
+  }, [thread.messages, thread.selectedCode, state.currentSession?.language]);
+
+  const handleApplySuggestion = (messageId: string, suggestion: CodeSuggestion) => {
+    if (!state.currentSession) return;
+
+    // Use thread line numbers to replace code accurately
+    const lines = state.currentSession.code.split('\n');
+    const suggestedLines = suggestion.suggestedCode.split('\n');
+    
+    // Replace lines from startLine to endLine (1-indexed, so subtract 1)
+    const newLines = [...lines];
+    const lineCount = thread.endLine - thread.startLine + 1;
+    
+    newLines.splice(
+      thread.startLine - 1,
+      lineCount,
+      ...suggestedLines
+    );
+    
+    const newCode = newLines.join('\n');
+    
+    dispatch({
+      type: 'SET_CODE',
+      payload: {
+        code: newCode,
+        language: state.currentSession.language,
+        fileName: state.currentSession.fileName,
+      },
+    });
+    
+    // Dismiss this suggestion
+    setDismissedSuggestions((prev) => new Set(prev).add(`${messageId}-${suggestion.suggestedCode.slice(0, 20)}`));
+  };
+
+  const handleDismissSuggestion = (messageId: string, suggestion: CodeSuggestion) => {
+    setDismissedSuggestions((prev) => new Set(prev).add(`${messageId}-${suggestion.suggestedCode.slice(0, 20)}`));
+  };
 
   // Reset auto-respond ref when thread changes
   useEffect(() => {
@@ -277,6 +335,24 @@ export function CommentThread({ thread, onClose }: CommentThreadProps) {
                       <ReactMarkdown>{message.content}</ReactMarkdown>
                     ) : (
                       <div className="text-secondary italic">Waiting for response...</div>
+                    )}
+                    {/* Show code suggestions if available */}
+                    {messageSuggestions.has(message.id) && (
+                      <div className="mt-3 space-y-3">
+                        {messageSuggestions.get(message.id)!.map((suggestion, idx) => {
+                          const suggestionKey = `${message.id}-${suggestion.suggestedCode.slice(0, 20)}`;
+                          if (dismissedSuggestions.has(suggestionKey)) return null;
+                          
+                          return (
+                            <DiffView
+                              key={idx}
+                              suggestion={suggestion}
+                              onApply={() => handleApplySuggestion(message.id, suggestion)}
+                              onDismiss={() => handleDismissSuggestion(message.id, suggestion)}
+                            />
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 ) : (
