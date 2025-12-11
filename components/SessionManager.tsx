@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CodeReviewSession } from '@/lib/types';
-import { loadSessions, deleteSession } from '@/lib/storage';
+import { loadSessions, deleteSession, clearAllSessions } from '@/lib/storage';
 import { formatTimestamp, truncateText } from '@/lib/utils';
 
 interface SessionManagerProps {
@@ -38,14 +38,32 @@ export function SessionManager({
     }
   };
 
+  const handleDeleteAll = () => {
+    if (sessions.length === 0) return;
+    
+    const count = sessions.length;
+    if (confirm(`Delete all ${count} saved session${count !== 1 ? 's' : ''}? This cannot be undone.`)) {
+      clearAllSessions();
+      setSessions([]);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background border border-border rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
+      <div className="bg-[var(--modal-bg)] border border-border rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h2 className="text-lg font-semibold">Saved Sessions</h2>
           <div className="flex items-center gap-2">
+            {sessions.length > 0 && (
+              <button
+                onClick={handleDeleteAll}
+                className="px-3 py-1.5 text-sm border border-danger rounded hover:bg-danger/20 text-danger transition"
+              >
+                Delete All
+              </button>
+            )}
             <button
               onClick={onNewSession}
               className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition"

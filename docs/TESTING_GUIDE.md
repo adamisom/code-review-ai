@@ -2,6 +2,14 @@
 
 Use this document to track your testing progress and resume where you left off.
 
+## 🔄 Development Workflow
+
+**Hot Reload**: Next.js automatically reloads changes - no restart needed. If changes don't appear, hard refresh (`Cmd+Shift+R` / `Ctrl+Shift+R`).
+
+**Restart Required Only For**:
+- Environment variable changes (`.env` files)
+- Adding/removing npm packages (run `npm install` first)
+
 ## 🚦 Current Status
 
 **Last Issue Encountered:** Monaco Editor stuck on "Loading editor..." for 1+ minute

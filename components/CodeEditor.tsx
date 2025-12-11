@@ -1,7 +1,6 @@
 'use client';
 
 import { useCodeReview } from './providers/CodeReviewProvider';
-import { SelectionActionMenu } from './SelectionActionMenu';
 import { ThreadCreationDialog } from './ThreadCreationDialog';
 import { generateId, getNextThreadColor, extractSelection, detectLanguage } from '@/lib/utils';
 import { CodeThread } from '@/lib/types';
@@ -9,7 +8,7 @@ import dynamic from 'next/dynamic';
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { truncateText } from '@/lib/utils';
 import CodeMirror from '@uiw/react-codemirror';
-import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from '@codemirror/view';
+import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, placeholder } from '@codemirror/view';
 import { EditorState, Extension, StateField, StateEffect, RangeSetBuilder } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { javascript } from '@codemirror/lang-javascript';
@@ -178,19 +177,40 @@ const threadDecorationsPlugin = ViewPlugin.fromClass(
 export function CodeEditor() {
   const { state, dispatch } = useCodeReview();
   const viewRef = useRef<EditorView | null>(null);
-  const [showActionMenu, setShowActionMenu] = useState(false);
-  const [actionMenuPosition, setActionMenuPosition] = useState({ top: 0, left: 0 });
   const [showThreadDialog, setShowThreadDialog] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasLoadedRef = useRef(false); // Track if editor has ever loaded
+  const isSelectingRef = useRef(false); // Track if user is actively selecting with mouse
 
-  // Set timeout to show warning only if editor truly fails to load
+  // Set timeout to show warning only if editor truly fails to load (only on initial mount)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoadingTimeout(true);
-    }, 30000); // 30 second timeout
+    // If editor already loaded, never show timeout
+    if (hasLoadedRef.current || viewRef.current) {
+      setLoadingTimeout(false);
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, []);
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Only set timeout on initial mount if editor hasn't loaded
+    timeoutRef.current = setTimeout(() => {
+      // Only show timeout if editor still hasn't loaded
+      if (!hasLoadedRef.current && !viewRef.current) {
+        setLoadingTimeout(true);
+      }
+    }, 10000); // 10 second timeout - CodeMirror should load much faster
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []); // Empty deps - only run on mount
 
   // Language extension
   const languageExtension = useMemo(() => {
@@ -227,10 +247,10 @@ export function CodeEditor() {
   const handleEditorChange = (value: string) => {
     // Auto-detect language if code changes significantly
     const detectedLanguage = detectLanguage(value, state.currentSession?.fileName);
-    dispatch({
-      type: 'SET_CODE',
-      payload: {
-        code: value,
+      dispatch({
+        type: 'SET_CODE',
+        payload: {
+          code: value,
         language: detectedLanguage,
       },
     });
@@ -242,15 +262,43 @@ export function CodeEditor() {
     const selection = update.state.selection.main;
     if (selection.empty) {
       dispatch({ type: 'SET_SELECTION', payload: null });
-      setShowActionMenu(false);
       return;
     }
 
     const selectedText = update.state.sliceDoc(selection.from, selection.to);
     if (!selectedText.trim()) {
       dispatch({ type: 'SET_SELECTION', payload: null });
-      setShowActionMenu(false);
       return;
+    }
+
+    // Auto-scroll to keep selection visible during drag
+    if (update.view && !selection.empty) {
+      try {
+        const coords = update.view.coordsAtPos(selection.to);
+        if (coords) {
+          const rect = update.view.scrollDOM.getBoundingClientRect();
+          const viewportTop = rect.top;
+          const viewportBottom = rect.bottom;
+          const margin = 60; // 60px margin
+          
+          // Scroll if selection end is near viewport edges
+          if (coords.top < viewportTop + margin) {
+            // Scroll up to show selection
+            update.view.scrollDOM.scrollBy({
+              top: coords.top - viewportTop - margin,
+              behavior: 'auto',
+            });
+          } else if (coords.top > viewportBottom - margin) {
+            // Scroll down to show selection
+            update.view.scrollDOM.scrollBy({
+              top: coords.top - viewportBottom + margin,
+              behavior: 'auto',
+            });
+          }
+        }
+      } catch (e) {
+        // Ignore scroll errors
+      }
     }
 
     // Convert 0-indexed positions to 1-indexed line/column
@@ -272,25 +320,7 @@ export function CodeEditor() {
       },
     });
 
-    // Show action menu near selection
-    const coords = update.view.coordsAtPos(selection.to);
-    if (coords) {
-      setActionMenuPosition({ 
-        top: coords.top + window.scrollY + 20, 
-        left: coords.left + window.scrollX + 10 
-      });
-      setShowActionMenu(true);
-    }
-  };
-
-  const handleAskAI = () => {
-    setShowActionMenu(false);
-    setShowThreadDialog(true);
-  };
-
-  const handleCancelAction = () => {
-    setShowActionMenu(false);
-    dispatch({ type: 'SET_SELECTION', payload: null });
+    // Don't automatically show menu on selection - only show when explicitly triggered
   };
 
   const handleCreateThread = (message: string) => {
@@ -349,6 +379,93 @@ export function CodeEditor() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.selectedRange, state.currentSession]);
 
+  // Listen for "Analyze Code" button click or Cmd+A+I shortcut
+  useEffect(() => {
+    const handleAnalyzeCode = () => {
+      if (!state.currentSession || !state.currentSession.code) return;
+      
+      // If there's a selection, use it; otherwise select all
+      if (!state.selectedRange && viewRef.current) {
+        // Select all code
+        const code = state.currentSession.code;
+        const startPos = 0;
+        const endPos = code.length;
+        
+        viewRef.current.dispatch({
+          selection: { anchor: startPos, head: endPos },
+        });
+        
+        // Set selection in state
+        const startLine = viewRef.current.state.doc.lineAt(startPos);
+        const endLine = viewRef.current.state.doc.lineAt(endPos);
+        
+        dispatch({
+          type: 'SET_SELECTION',
+          payload: {
+            startLine: startLine.number,
+            endLine: endLine.number,
+            startColumn: 1,
+            endColumn: endLine.length + 1,
+          },
+        });
+      }
+      
+      // Open thread creation dialog if there's a selection
+      if (state.selectedRange) {
+        setShowThreadDialog(true);
+      } else {
+        // Wait a bit for selection to be set, then open dialog
+        setTimeout(() => {
+          if (state.selectedRange) {
+            setShowThreadDialog(true);
+          }
+        }, 100);
+      }
+    };
+
+    // Keyboard shortcut: Cmd+A+I (or Ctrl+A+I) - detect sequence
+    let waitingForI = false;
+    let sequenceTimeout: NodeJS.Timeout | null = null;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isModifier = e.metaKey || e.ctrlKey;
+      
+      // Clear any existing timeout
+      if (sequenceTimeout) {
+        clearTimeout(sequenceTimeout);
+      }
+
+      // If Cmd/Ctrl+A is pressed, wait for I
+      if (isModifier && (e.key === 'a' || e.key === 'A')) {
+        waitingForI = true;
+        sequenceTimeout = setTimeout(() => {
+          waitingForI = false;
+        }, 1000); // Reset after 1 second
+      } 
+      // If we're waiting for I and Cmd/Ctrl+I is pressed
+      else if (waitingForI && isModifier && (e.key === 'i' || e.key === 'I')) {
+        e.preventDefault();
+        waitingForI = false;
+        if (sequenceTimeout) clearTimeout(sequenceTimeout);
+        handleAnalyzeCode();
+      } 
+      // Reset if any other key is pressed
+      else if (!isModifier) {
+        waitingForI = false;
+      }
+    };
+
+    window.addEventListener('analyze-code', handleAnalyzeCode);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('analyze-code', handleAnalyzeCode);
+      window.removeEventListener('keydown', handleKeyDown);
+      if (sequenceTimeout) clearTimeout(sequenceTimeout);
+    };
+  }, [state.currentSession, state.selectedRange, dispatch]);
+
+
   const selectedCode = state.selectedRange && state.currentSession
     ? extractSelection(
         state.currentSession.code,
@@ -361,10 +478,13 @@ export function CodeEditor() {
 
   // Extensions for CodeMirror
   const extensions = useMemo(() => {
+    const code = state.currentSession?.code || '';
+    const isDark = state.editorTheme === 'vs-dark';
     return [
       languageExtension,
       themeExtension,
       ...threadDecorationsExtension,
+      placeholder('// Paste your code here or start typing...'),
       EditorView.theme({
         '&': {
           fontSize: '14px',
@@ -372,18 +492,45 @@ export function CodeEditor() {
         },
         '.cm-content': {
           padding: '16px',
+          backgroundColor: 'var(--editor-bg)',
         },
         '.cm-editor': {
           height: '100%',
+          backgroundColor: 'var(--editor-bg)',
         },
         '.cm-scroller': {
           overflow: 'auto',
+          backgroundColor: 'var(--editor-bg)',
+        },
+        '.cm-selectionBackground': {
+          background: 'var(--selection-bg) !important',
+          opacity: '1 !important',
+        },
+        '.cm-selectionMatch': {
+          backgroundColor: 'var(--selection-bg) !important',
+          opacity: '1 !important',
+        },
+        '.cm-focused .cm-selectionBackground': {
+          background: 'var(--selection-bg) !important',
+          opacity: '1 !important',
+        },
+        '.cm-selectionLayer .cm-selectionBackground': {
+          background: 'var(--selection-bg) !important',
+          opacity: '1 !important',
+        },
+        // Ensure selection is visible during drag
+        '.cm-selection': {
+          background: 'var(--selection-bg) !important',
+          opacity: '1 !important',
+        },
+        '.cm-content': {
+          caretColor: 'var(--foreground)',
         },
       }),
       EditorState.tabSize.of(2),
       EditorView.lineWrapping,
     ];
-  }, [languageExtension, themeExtension, threadDecorationsExtension]);
+  }, [languageExtension, themeExtension, threadDecorationsExtension, state.currentSession?.code, state.editorTheme]);
 
   if (loadingTimeout) {
     return (
@@ -410,14 +557,20 @@ export function CodeEditor() {
   return (
     <div className="h-full w-full relative">
       <CodeMirrorEditor
-        value={state.currentSession?.code || '// Paste your code here or start typing...'}
+        value={state.currentSession?.code || ''}
         height="100%"
         extensions={extensions}
         onChange={handleEditorChange}
         onUpdate={(update) => {
           if (update.view && !viewRef.current) {
             viewRef.current = update.view;
+            hasLoadedRef.current = true; // Mark as loaded
             setLoadingTimeout(false);
+            // Clear timeout since editor has loaded
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+              timeoutRef.current = null;
+            }
           }
           handleSelectionChange(update);
         }}
@@ -428,13 +581,6 @@ export function CodeEditor() {
           allowMultipleSelections: false,
         }}
       />
-      {showActionMenu && state.selectedRange && (
-        <SelectionActionMenu
-          position={actionMenuPosition}
-          onAskAI={handleAskAI}
-          onCancel={handleCancelAction}
-        />
-      )}
       {showThreadDialog && state.selectedRange && (
         <ThreadCreationDialog
           selectedCode={selectedCode}

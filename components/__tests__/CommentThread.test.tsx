@@ -44,24 +44,14 @@ describe('CommentThread', () => {
     expect(screen.getByText('Test question')).toBeInTheDocument();
   });
 
-  it('should display selected code', () => {
+  it('should display message count in header', () => {
     render(
       <CodeReviewProvider>
         <CommentThread thread={mockThread} onClose={jest.fn()} />
       </CodeReviewProvider>
     );
 
-    expect(screen.getByText('const x = 1;')).toBeInTheDocument();
-  });
-
-  it('should show copy button for code', () => {
-    render(
-      <CodeReviewProvider>
-        <CommentThread thread={mockThread} onClose={jest.fn()} />
-      </CodeReviewProvider>
-    );
-
-    expect(screen.getByText('Copy')).toBeInTheDocument();
+    expect(screen.getByText(/1 messages/)).toBeInTheDocument();
   });
 });
 

@@ -3,8 +3,50 @@
 @tailwind utilities;
 
 :root {
-  --background: #1e1e1e;
+  /* Dark mode (default) */
   --foreground: #d4d4d4;
+  --background: #1e1e1e;
+  --border: #3e3e3e;
+  --primary: #2563eb; /* Darker blue for dark mode */
+  --secondary: #6c757d;
+  --accent: #7c3aed;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --scrollbar-track: #2d2d2d;
+  --scrollbar-thumb: #4a4a4a;
+  --scrollbar-thumb-hover: #5a5a5a;
+  --editor-bg: #0d1117;
+  --hover-bg: rgba(62, 62, 62, 0.3);
+  --modal-bg: #1e1e1e; /* Same as background for dark mode */
+  --selection-bg: rgba(59, 130, 246, 0.4); /* More prominent blue highlight for dark mode */
+  --selection-border: rgba(59, 130, 246, 0.6);
+}
+
+/* Set default theme to dark */
+html {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  /* Light mode */
+  --foreground: #1f2937; /* Darker gray for better readability */
+  --background: #f5f5f5; /* Muted off-white instead of bright white */
+  --border: #e5e7eb;
+  --primary: #3b82f6; /* Brighter blue for light mode */
+  --secondary: #6b7280;
+  --accent: #8b5cf6;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --scrollbar-track: #f3f4f6;
+  --scrollbar-thumb: #d1d5db;
+  --scrollbar-thumb-hover: #9ca3af;
+  --editor-bg: #fafafa; /* Slightly lighter than background for subtle contrast */
+  --hover-bg: rgba(229, 231, 235, 0.5);
+  --modal-bg: #f0f0f0; /* More muted/grayer white for modals */
+  --selection-bg: rgba(59, 130, 246, 0.25); /* More prominent blue highlight for light mode */
+  --selection-border: rgba(59, 130, 246, 0.5);
 }
 
 body {
@@ -26,21 +68,57 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #2d2d2d;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5a;
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* CodeMirror Editor custom styles */
 .cm-editor {
   position: relative;
+}
+
+/* Prominent selection highlighting */
+.cm-editor .cm-selectionBackground {
+  background: var(--selection-bg) !important;
+  opacity: 1 !important;
+}
+
+.cm-editor.cm-focused .cm-selectionBackground {
+  background: var(--selection-bg) !important;
+  opacity: 1 !important;
+}
+
+.cm-editor .cm-selectionLayer .cm-selectionBackground {
+  background: var(--selection-bg) !important;
+  opacity: 1 !important;
+}
+
+/* Ensure selection is visible during drag - target all selection-related classes */
+.cm-editor .cm-selection {
+  background: var(--selection-bg) !important;
+  opacity: 1 !important;
+}
+
+.cm-editor .cm-selectionMatch {
+  background: var(--selection-bg) !important;
+  opacity: 1 !important;
+}
+
+/* Override any theme-specific selection styles */
+.cm-editor .cm-content ::selection {
+  background: var(--selection-bg) !important;
+}
+
+.cm-editor .cm-content ::-moz-selection {
+  background: var(--selection-bg) !important;
 }
 
 /* Thread highlight colors */

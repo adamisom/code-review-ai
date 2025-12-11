@@ -28,15 +28,31 @@ export function ThreadPanel() {
     }
   };
 
+  // Show active thread conversation OR threads list, not both
+  if (state.activeThreadId) {
+    const activeThread = threads.find((t) => t.id === state.activeThreadId);
+    if (activeThread) {
+      return (
+        <div className="flex flex-col h-full bg-background">
+          <CommentThread
+            thread={activeThread}
+            onClose={() => dispatch({ type: 'SET_ACTIVE_THREAD', payload: null })}
+          />
+        </div>
+      );
+    }
+  }
+
+  // Show threads list when no thread is active
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-border flex-shrink-0">
         <h2 className="text-lg font-semibold">
           Threads ({threads.length})
         </h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {threads.length === 0 ? (
           <div className="p-4 text-center text-secondary">
             <p>No threads yet</p>
@@ -52,9 +68,7 @@ export function ThreadPanel() {
                 {activeThreads.map(thread => (
                   <div
                     key={thread.id}
-                    className={`p-4 cursor-pointer hover:bg-border/30 transition ${
-                      state.activeThreadId === thread.id ? 'bg-border/50' : ''
-                    }`}
+                    className="p-4 cursor-pointer hover:bg-border/30 transition"
                     onClick={() => handleThreadClick(thread.id)}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -97,7 +111,7 @@ export function ThreadPanel() {
 
             {resolvedThreads.length > 0 && (
               <div>
-                <div className="px-4 py-2 text-xs font-semibold text-secondary uppercase">
+                <div className="px-4 py-2 text-xs font-semibold text-secondary uppercase whitespace-nowrap overflow-visible">
                   Resolved
                 </div>
                 {resolvedThreads.map(thread => (
@@ -122,21 +136,6 @@ export function ThreadPanel() {
           </div>
         )}
       </div>
-
-      {/* Active thread conversation view */}
-      {state.activeThreadId && (() => {
-        const activeThread = threads.find((t) => t.id === state.activeThreadId);
-        if (!activeThread) return null;
-
-        return (
-          <div className="border-t border-border h-[60%] flex-shrink-0">
-            <CommentThread
-              thread={activeThread}
-              onClose={() => dispatch({ type: 'SET_ACTIVE_THREAD', payload: null })}
-            />
-          </div>
-        );
-      })()}
     </div>
   );
 }

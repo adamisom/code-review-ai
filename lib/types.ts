@@ -76,7 +76,8 @@ export type CodeReviewAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_LANGUAGE'; payload: string }
-  | { type: 'SET_THEME'; payload: 'vs-dark' | 'vs-light' };
+  | { type: 'SET_THEME'; payload: 'vs-dark' | 'vs-light' }
+  | { type: 'SET_FILE_NAME'; payload: string };
 
 // API request/response types
 export interface ReviewRequest {

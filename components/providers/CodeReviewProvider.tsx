@@ -187,6 +187,17 @@ function codeReviewReducer(state: CodeReviewState, action: CodeReviewAction): Co
         editorTheme: action.payload,
       };
 
+    case 'SET_FILE_NAME':
+      if (!state.currentSession) return state;
+      return {
+        ...state,
+        currentSession: {
+          ...state.currentSession,
+          fileName: action.payload,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+
     default:
       return state;
   }

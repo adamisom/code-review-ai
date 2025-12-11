@@ -9,15 +9,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#1e1e1e",
-        foreground: "#d4d4d4",
-        border: "#3e3e3e",
-        primary: "#4a9eff",
-        secondary: "#6c757d",
-        accent: "#7c3aed",
-        success: "#22c55e",
-        warning: "#f59e0b",
-        danger: "#ef4444",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        border: "var(--border)",
+        primary: "var(--primary)",
+        secondary: "var(--secondary)",
+        accent: "var(--accent)",
+        success: "var(--success)",
+        warning: "var(--warning)",
+        danger: "var(--danger)",
+        "hover-bg": "var(--hover-bg)",
+        "editor-bg": "var(--editor-bg)",
         thread: {
           blue: "#4a9eff",
           purple: "#a855f7",

@@ -34,11 +34,13 @@ export function ThreadCreationDialog({
 
   const handleSuggestedPrompt = (prompt: string) => {
     setMessage(prompt);
+    // Auto-submit when clicking a suggested prompt
+    onSubmit(prompt.trim());
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background border border-border rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+      <div className="bg-[var(--modal-bg)] border border-border rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h2 className="text-lg font-semibold">
             Create Thread - Lines {lineRange.start}-{lineRange.end}
@@ -69,7 +71,11 @@ export function ThreadCreationDialog({
               {suggestedPrompts.map((prompt, idx) => (
                 <button
                   key={idx}
-                  onClick={() => handleSuggestedPrompt(prompt)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSuggestedPrompt(prompt);
+                  }}
                   className="text-xs px-2 py-1 bg-border/50 rounded hover:bg-border transition"
                 >
                   {prompt}

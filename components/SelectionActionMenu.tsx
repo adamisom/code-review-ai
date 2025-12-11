@@ -34,33 +34,37 @@ export function SelectionActionMenu({ position, onAskAI, onCancel }: SelectionAc
     };
 
     window.addEventListener('keydown', handleEscape);
-    window.addEventListener('mousedown', handleClickOutside);
+    // Use click instead of mousedown to allow menu buttons to be clicked
+    window.addEventListener('click', handleClickOutside, true);
 
     return () => {
       window.removeEventListener('keydown', handleEscape);
-      window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('click', handleClickOutside, true);
     };
   }, [onCancel, position]);
 
   return (
     <div
       ref={menuRef}
-      className="absolute z-50 bg-background border border-border rounded-lg shadow-lg p-2 min-w-[150px]"
+      className="absolute z-50 bg-[var(--modal-bg)] border border-border rounded-lg shadow-xl p-1 min-w-[180px]"
       style={{
         top: `${adjustedPosition.top}px`,
         left: `${adjustedPosition.left}px`,
       }}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <button
         onClick={onAskAI}
-        className="w-full text-left px-3 py-2 rounded hover:bg-border/50 transition flex items-center gap-2"
+        className="w-full text-left px-4 py-2.5 rounded hover:bg-border/50 transition flex items-center gap-3 text-sm font-medium"
       >
-        <span>💬</span>
+        <span className="text-lg">💬</span>
         <span>Ask AI</span>
       </button>
+      <div className="h-px bg-border my-1" />
       <button
         onClick={onCancel}
-        className="w-full text-left px-3 py-2 rounded hover:bg-border/50 transition text-secondary text-sm"
+        className="w-full text-left px-4 py-2 rounded hover:bg-border/50 transition text-secondary text-sm"
       >
         Cancel
       </button>

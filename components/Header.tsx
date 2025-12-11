@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCodeReview } from './providers/CodeReviewProvider';
 import { SessionManager } from './SessionManager';
 
 export function Header() {
   const { state, dispatch } = useCodeReview();
   const [showSessionManager, setShowSessionManager] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const handleNewSession = () => {
     if (confirm('Start a new session? Current work will be saved.')) {
@@ -21,8 +23,9 @@ export function Header() {
   const handleThemeToggle = () => {
     const newTheme = state.editorTheme === 'vs-dark' ? 'vs-light' : 'vs-dark';
     dispatch({ type: 'SET_THEME', payload: newTheme });
-    // Save theme preference to localStorage
+    // Update CSS theme variable
     if (typeof window !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', newTheme === 'vs-dark' ? 'dark' : 'light');
       localStorage.setItem('code-review-theme', newTheme);
     }
   };
@@ -31,9 +34,10 @@ export function Header() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('code-review-theme');
-      if (savedTheme === 'vs-dark' || savedTheme === 'vs-light') {
-        dispatch({ type: 'SET_THEME', payload: savedTheme });
-      }
+      const theme = savedTheme === 'vs-light' ? 'vs-light' : 'vs-dark';
+      dispatch({ type: 'SET_THEME', payload: theme });
+      // Set initial CSS theme variable
+      document.documentElement.setAttribute('data-theme', theme === 'vs-dark' ? 'dark' : 'light');
     }
   }, [dispatch]);
 
@@ -70,19 +74,75 @@ ${thread.messages.map((m) => `**${m.role === 'user' ? 'User' : 'AI'}** (${new Da
     URL.revokeObjectURL(url);
   };
 
+  const handleNameClick = () => {
+    setIsEditingName(true);
+    setTimeout(() => nameInputRef.current?.focus(), 0);
+  };
+
+  const handleNameBlur = () => {
+    setIsEditingName(false);
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    dispatch({ type: 'SET_FILE_NAME', payload: e.target.value });
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    } else if (e.key === 'Escape') {
+      setIsEditingName(false);
+    }
+  };
+
+
   return (
     <>
       <header className="h-14 border-b border-border flex items-center justify-between px-6 bg-background">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">CodeReview.ai</h1>
+          <h1 className="text-xl font-bold font-mono lowercase">linewise</h1>
           {state.currentSession && (
-            <span className="text-sm text-secondary">
-              {state.currentSession.fileName || 'Untitled'} • {state.editorLanguage}
-            </span>
+            <div className="flex items-center gap-2">
+              {isEditingName ? (
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={state.currentSession.fileName || ''}
+                  onChange={handleNameChange}
+                  onBlur={handleNameBlur}
+                  onKeyDown={handleNameKeyDown}
+                  placeholder="Untitled"
+                  className="text-sm text-secondary bg-transparent border-b border-primary focus:outline-none focus:border-primary/80 min-w-[100px] max-w-[200px]"
+                />
+              ) : (
+                <span
+                  onClick={handleNameClick}
+                  className="text-sm text-secondary cursor-pointer hover:text-foreground transition px-1 py-0.5 rounded hover:bg-border/30"
+                  title="Click to edit name"
+                >
+                  {state.currentSession.fileName || 'Untitled'}
+                </span>
+              )}
+              <span className="text-sm text-secondary">•</span>
+              <span className="text-sm text-secondary">{state.editorLanguage}</span>
+            </div>
           )}
         </div>
         
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('analyze-code'))}
+              disabled={!state.selectedRange}
+              className="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
+            >
+              <span>🤖</span>
+              <span>Analyze Code</span>
+            </button>
+            <span className="text-xs italic text-secondary">
+              ⌘A+I / Ctrl+A+I
+            </span>
+          </div>
           <button
             onClick={handleNewSession}
             className="px-3 py-1.5 text-sm border border-border rounded hover:bg-border/50 transition"
