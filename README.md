@@ -1,6 +1,14 @@
-# CodeReview.ai - AI-Powered Inline Code Review
+# Linewise - AI-Powered Inline Code Review
 
 Get instant, contextual AI feedback on your code with inline comment threads.
+
+## 🔄 Development Workflow
+
+**Hot Reload**: Next.js automatically reloads changes - no restart needed. If changes don't appear, hard refresh (`Cmd+Shift+R` / `Ctrl+Shift+R`).
+
+**Restart Required Only For**:
+- Environment variable changes (`.env` files)
+- Adding/removing npm packages (run `npm install` first)
 
 ## 🚀 Quick Start
 
@@ -41,20 +49,24 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - 📦 **Multiple Threads** - Independent conversations on different code sections
 - 💾 **Auto-Save** - Sessions automatically persist in localStorage
 - 🎯 **Context-Aware** - AI sees full file context for better feedback
-- ⌨️ **Keyboard Shortcuts** - Press `Cmd+K` (or `Ctrl+K`) to quickly create threads
+- ⌨️ **Keyboard Shortcuts** - `Cmd+K` (or `Ctrl+K`) to create threads, `Cmd+A+I` (or `Ctrl+A+I`) to analyze code
 - 🎨 **Theme Toggle** - Switch between light and dark themes
 - 🔍 **Language Auto-Detection** - Automatically detects programming language from code
 - 📤 **Export to Markdown** - Export all threads and conversations as markdown reports
 - 💾 **Session Management** - Load, save, and manage multiple review sessions
+- 🔄 **Automatic AI Responses** - AI automatically responds when threads are created
+- 📏 **Resizable Panel** - Adjustable thread panel width (drag to resize, min 384px)
+- 🎨 **Improved UI/UX** - Streamlined conversation view, better spacing, prominent selection highlighting
 
 ## 📖 Usage
 
 1. **Paste Code**: Copy your code into the CodeMirror editor
 2. **Select Section**: Highlight specific lines you want reviewed
-3. **Ask AI**: Press `Cmd+K` or click "Ask AI"
-4. **Get Feedback**: AI analyzes your code and provides contextual suggestions
+3. **Analyze Code**: Press `Cmd+A+I` (or `Ctrl+A+I`) or click "Analyze Code" button
+4. **Get Feedback**: AI automatically analyzes your code and provides contextual suggestions
 5. **Continue Conversation**: Ask follow-up questions in the thread
 6. **Create More Threads**: Select different sections for independent reviews
+7. **Manage Sessions**: Use "New Session", "Load Session", and "Export" buttons in the header
 
 ## 🏗️ Tech Stack
 
@@ -125,8 +137,16 @@ code-review-ai/
 - ✅ **Markdown Rendering** - AI responses rendered with proper markdown formatting
 - ✅ **Code Copy Button** - Quick copy for selected code snippets
 
+### UI/UX Improvements
+- ✅ **Resizable Thread Panel** - Drag handle to adjust panel width (default 512px, min 384px)
+- ✅ **Streamlined Layout** - Conversation view at top, thread list at bottom
+- ✅ **Prominent Selection Highlighting** - Enhanced visual feedback during code selection
+- ✅ **Automatic AI Responses** - AI responds immediately when threads are created
+- ✅ **Improved Spacing** - Better padding and layout throughout the UI
+- ✅ **Theme-Aware Colors** - CSS variables for easy light/dark mode switching
+
 ### Testing
-- ✅ **Unit Tests** - 39 tests covering utilities and components
+- ✅ **Unit Tests** - 38 tests covering utilities and components
 - ✅ **Test Configuration** - Jest with React Testing Library setup
 - ✅ **All Tests Passing** - 100% test success rate
 
@@ -154,7 +174,7 @@ npm run verify
 
 - **Utilities**: Language detection, text formatting, selection extraction, storage operations
 - **Components**: SelectionActionMenu, ThreadCreationDialog, CommentThread, ThreadPanel
-- **All 39 tests passing** with comprehensive coverage
+- **All 38 tests passing** with comprehensive coverage
 
 ## 💡 Development Tips
 
@@ -185,13 +205,23 @@ npm run verify
 
 ## 🎯 How It Works
 
-1. **Code Selection**: Select code in the CodeMirror editor
-2. **Thread Creation**: Press `Cmd+K` or click "Ask AI" to create a thread
-3. **AI Review**: Ask questions and get streaming AI responses
-4. **Multiple Threads**: Create independent threads for different code sections
-5. **Visual Indicators**: Threads are highlighted with colors in the editor
-6. **Session Management**: All work is auto-saved and can be loaded later
-7. **Export**: Generate markdown reports of all review conversations
+1. **Code Selection**: Select code in the CodeMirror editor (selection is prominently highlighted)
+2. **Thread Creation**: Press `Cmd+A+I` (or `Ctrl+A+I`) or click "Analyze Code" button
+3. **Automatic AI Review**: AI automatically analyzes your code and provides streaming responses
+4. **Continue Conversation**: Ask follow-up questions in the thread
+5. **Multiple Threads**: Create independent threads for different code sections
+6. **Visual Indicators**: Threads are highlighted with colors in the editor
+7. **Session Management**: All work is auto-saved and can be loaded later
+8. **Export**: Generate markdown reports of all review conversations
+9. **Resize Panel**: Drag the left edge of the thread panel to adjust width
+
+## 📚 Documentation
+
+- **[PRD](./docs/PRD.md)** - Product requirements document (original challenge)
+- **[PRD Implementation](./docs/PRD_IMPLEMENTATION.md)** - Detailed implementation-ready PRD
+- **[Architecture](./docs/ARCHITECTURE.md)** - System architecture overview
+- **[Code Analysis](./docs/CODE_ANALYSIS.md)** - Complete function inventory and call sites
+- **[AI Usage](./docs/AI_USAGE.md)** - Documentation of AI tools used during development
 
 ## 🤝 Future Enhancements
 
@@ -202,8 +232,9 @@ Potential features for future development:
 - VS Code extension
 - Team features with authentication
 - Multi-file support
-- Diff view for AI suggestions
-- Code refactoring suggestions with apply button
+- Enhanced error handling and retry logic
+- E2E testing with Playwright
+- Accessibility improvements
 
 ## 📄 License
 
@@ -213,4 +244,22 @@ MIT
 
 **Built for the Automattic Code Review Challenge**
 
-Implementation complete! 🎉 All features from the PRD have been implemented and tested.
+## ✅ Implementation Status
+
+**Core Requirements**: ✅ Complete  
+All core requirements from PRD.md have been implemented:
+- ✅ Code editor interface with syntax highlighting
+- ✅ Selection-based interaction
+- ✅ Contextual AI responses with full file context
+- ✅ Inline conversation threads tied to code sections
+- ✅ Multiple independent conversation threads
+
+**Recent Improvements**:
+- ✅ Refactored from Monaco Editor to CodeMirror 6 for faster loading
+- ✅ Added resizable thread panel
+- ✅ Improved UI/UX with streamlined layout
+- ✅ Enhanced selection highlighting
+- ✅ Automatic AI responses on thread creation
+- ✅ Fixed hydration errors and layout issues
+- ✅ Code suggestions and diff view with apply functionality
+- ✅ Language dropdown for syntax highlighting
