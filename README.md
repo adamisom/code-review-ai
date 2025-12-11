@@ -44,7 +44,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 - 🎨 **CodeMirror Editor** - Fast, lightweight editor with syntax highlighting for 50+ languages
 - 💬 **Inline Comment Threads** - Tied to specific code sections with visual highlights
-- 🤖 **AI-Powered Reviews** - Using Claude 3.5 Sonnet with streaming responses
+- 🤖 **AI-Powered Reviews** - Using Claude Sonnet with streaming responses
 - 🔄 **Real-time Streaming** - See AI responses as they're generated character by character
 - 📦 **Multiple Threads** - Independent conversations on different code sections
 - 💾 **Auto-Save** - Sessions automatically persist in localStorage
@@ -56,7 +56,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - 💾 **Session Management** - Load, save, and manage multiple review sessions
 - 🔄 **Automatic AI Responses** - AI automatically responds when threads are created
 - 📏 **Resizable Panel** - Adjustable thread panel width (drag to resize, min 384px)
-- 🎨 **Improved UI/UX** - Streamlined conversation view, better spacing, prominent selection highlighting
 
 ## 📖 Usage
 
@@ -92,19 +91,36 @@ code-review-ai/
 ├── components/
 │   ├── providers/
 │   │   └── CodeReviewProvider.tsx # State management with auto-save
+│   ├── threads/
+│   │   ├── CommentThread.tsx     # Thread conversation UI with streaming
+│   │   ├── CommentThreadHeader.tsx # Thread header component
+│   │   ├── MessageList.tsx       # Message list with markdown rendering
+│   │   ├── MessageInput.tsx      # Input field for sending messages
+│   │   └── StreamingIndicator.tsx # "AI is thinking..." indicator
 │   ├── CodeEditor.tsx            # CodeMirror editor with selection & decorations
-│   ├── CommentThread.tsx         # Thread conversation UI with streaming
+│   ├── DiffView.tsx              # Side-by-side diff view for code suggestions
 │   ├── Header.tsx                # Top navigation with export & theme toggle
 │   ├── ThreadPanel.tsx           # Thread sidebar with active thread view
-│   ├── SelectionActionMenu.tsx   # Floating menu for code selection
+│   ├── SelectionActionMenu.tsx   # Floating menu for code selection (unused)
 │   ├── ThreadCreationDialog.tsx  # Dialog to create new threads
 │   ├── SessionManager.tsx        # Session load/delete management
 │   └── __tests__/                # Component unit tests
+├── hooks/
+│   ├── useAIStreaming.ts         # Custom hook for AI streaming logic
+│   └── useCodeSuggestions.ts    # Custom hook for parsing code suggestions
 ├── lib/
+│   ├── api/
+│   │   └── streaming.ts          # Streaming API client
+│   ├── codemirror/
+│   │   └── threadDecorations.ts  # CodeMirror extensions for thread highlights
+│   ├── reducers/
+│   │   └── threadReducers.ts    # Reducer helper functions
 │   ├── types.ts                  # TypeScript definitions
-│   ├── utils.ts                  # Utility functions (detection, formatting)
+│   ├── utils.ts                  # Utility functions (detection, formatting, diff)
 │   ├── storage.ts                # localStorage helpers
-│   └── __tests__/                # Utility unit tests
+│   ├── constants.ts              # Application-wide constants
+│   └── __tests__/                # Unit tests (utils, storage, api, reducers)
+├── docs/                         # Documentation
 ├── jest.config.js                # Jest test configuration
 ├── jest.setup.js                 # Jest setup with mocks
 ├── .env.example                  # Environment template
@@ -146,7 +162,7 @@ code-review-ai/
 - ✅ **Theme-Aware Colors** - CSS variables for easy light/dark mode switching
 
 ### Testing
-- ✅ **Unit Tests** - 38 tests covering utilities and components
+- ✅ **Unit Tests** - 44 tests covering utilities and components
 - ✅ **Test Configuration** - Jest with React Testing Library setup
 - ✅ **All Tests Passing** - 100% test success rate
 
@@ -174,7 +190,7 @@ npm run verify
 
 - **Utilities**: Language detection, text formatting, selection extraction, storage operations
 - **Components**: SelectionActionMenu, ThreadCreationDialog, CommentThread, ThreadPanel
-- **All 38 tests passing** with comprehensive coverage
+- **All 44 tests passing** with comprehensive coverage
 
 ## 💡 Development Tips
 

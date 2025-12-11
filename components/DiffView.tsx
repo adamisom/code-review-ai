@@ -13,7 +13,7 @@ export function DiffView({ suggestion, onApply, onDismiss }: DiffViewProps) {
   const diff = computeDiff(suggestion.originalCode, suggestion.suggestedCode);
 
   return (
-    <div className="mt-4 border border-border rounded-lg overflow-hidden bg-background">
+    <div className="border border-border rounded-lg overflow-hidden bg-background">
       {suggestion.description && (
         <div className="px-3 py-2 bg-border/30 border-b border-border text-sm text-secondary">
           {suggestion.description}
@@ -85,7 +85,7 @@ export function DiffView({ suggestion, onApply, onDismiss }: DiffViewProps) {
           onClick={onApply}
           className="px-3 py-1 text-xs bg-success text-white rounded hover:bg-success/90 transition"
         >
-          Apply Changes
+          Apply Changes (beta)
         </button>
       </div>
     </div>

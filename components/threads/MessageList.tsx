@@ -20,14 +20,14 @@ export function MessageList({
   onDismissSuggestion,
 }: MessageListProps) {
   return (
-    <div className="p-4 space-y-4 pb-6">
+    <div className="px-4 py-4 space-y-4 pb-6">
       {thread.messages.map((message) => (
         <div
           key={message.id}
           className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
         >
           <div
-            className={`max-w-[80%] rounded-lg p-3 ${
+            className={`${message.role === 'user' ? 'max-w-[80%]' : 'w-full'} rounded-lg p-3 ${
               message.role === 'user'
                 ? 'bg-primary text-white'
                 : 'bg-border/50 text-foreground'
@@ -42,7 +42,7 @@ export function MessageList({
                 )}
                 {/* Show code suggestions if available */}
                 {messageSuggestions.has(message.id) && (
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-3 space-y-3 -mx-3 -mr-4">
                     {messageSuggestions.get(message.id)!.map((suggestion, idx) => {
                       const suggestionKey = `${message.id}-${suggestion.suggestedCode.slice(0, 20)}`;
                       if (dismissedSuggestions.has(suggestionKey)) return null;
