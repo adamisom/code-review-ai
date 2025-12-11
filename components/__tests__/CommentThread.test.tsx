@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { CommentThread } from '../CommentThread';
+import { CommentThread } from '../threads/CommentThread';
 import { CodeReviewProvider } from '../providers/CodeReviewProvider';
 import { CodeThread } from '@/lib/types';
 

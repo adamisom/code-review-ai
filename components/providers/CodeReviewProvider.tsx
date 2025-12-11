@@ -5,14 +5,21 @@ import { CodeReviewState, CodeReviewAction, CodeReviewSession } from '@/lib/type
 import { generateId } from '@/lib/utils';
 import { saveSession } from '@/lib/storage';
 import { useDebouncedCallback } from 'use-debounce';
+import { DEFAULT_EDITOR_LANGUAGE, DEFAULT_EDITOR_THEME } from '@/lib/constants';
+import {
+  updateThread,
+  updateMessage,
+  addMessageToThread,
+  removeMessageFromThread,
+} from '@/lib/reducers/threadReducers';
 
 // Initial state
 const initialState: CodeReviewState = {
   currentSession: null,
   activeThreadId: null,
   selectedRange: null,
-  editorLanguage: 'typescript',
-  editorTheme: 'vs-dark',
+  editorLanguage: DEFAULT_EDITOR_LANGUAGE,
+  editorTheme: DEFAULT_EDITOR_THEME,
   isLoadingAI: false,
   error: null,
 };
@@ -56,63 +63,16 @@ function codeReviewReducer(state: CodeReviewState, action: CodeReviewAction): Co
       };
 
     case 'ADD_MESSAGE':
-      if (!state.currentSession) return state;
-      return {
-        ...state,
-        currentSession: {
-          ...state.currentSession,
-          threads: state.currentSession.threads.map(thread =>
-            thread.id === action.payload.threadId
-              ? {
-                  ...thread,
-                  messages: [...thread.messages, action.payload.message],
-                  updatedAt: new Date().toISOString(),
-                }
-              : thread
-          ),
-          updatedAt: new Date().toISOString(),
-        },
-      };
+      return addMessageToThread(state, action.payload.threadId, action.payload.message);
 
     case 'UPDATE_MESSAGE':
-      if (!state.currentSession) return state;
-      return {
-        ...state,
-        currentSession: {
-          ...state.currentSession,
-          threads: state.currentSession.threads.map(thread =>
-            thread.id === action.payload.threadId
-              ? {
-                  ...thread,
-                  messages: thread.messages.map(msg =>
-                    msg.id === action.payload.messageId
-                      ? { ...msg, content: action.payload.content }
-                      : msg
-                  ),
-                }
-              : thread
-          ),
-        },
-      };
+      return updateMessage(state, action.payload.threadId, action.payload.messageId, (msg) => ({
+        ...msg,
+        content: action.payload.content,
+      }));
 
     case 'DELETE_MESSAGE':
-      if (!state.currentSession) return state;
-      return {
-        ...state,
-        currentSession: {
-          ...state.currentSession,
-          threads: state.currentSession.threads.map(thread =>
-            thread.id === action.payload.threadId
-              ? {
-                  ...thread,
-                  messages: thread.messages.filter(msg => msg.id !== action.payload.messageId),
-                  updatedAt: new Date().toISOString(),
-                }
-              : thread
-          ),
-          updatedAt: new Date().toISOString(),
-        },
-      };
+      return removeMessageFromThread(state, action.payload.threadId, action.payload.messageId);
 
     case 'SET_ACTIVE_THREAD':
       return {
@@ -121,19 +81,10 @@ function codeReviewReducer(state: CodeReviewState, action: CodeReviewAction): Co
       };
 
     case 'UPDATE_THREAD_STATUS':
-      if (!state.currentSession) return state;
-      return {
-        ...state,
-        currentSession: {
-          ...state.currentSession,
-          threads: state.currentSession.threads.map(thread =>
-            thread.id === action.payload.threadId
-              ? { ...thread, status: action.payload.status }
-              : thread
-          ),
-          updatedAt: new Date().toISOString(),
-        },
-      };
+      return updateThread(state, action.payload.threadId, (thread) => ({
+        ...thread,
+        status: action.payload.status,
+      }));
 
     case 'DELETE_THREAD':
       if (!state.currentSession) return state;

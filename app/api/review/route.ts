@@ -1,11 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
+import { ReviewRequest } from '@/lib/types';
 
 export const runtime = 'edge';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<Response> {
   try {
-    const { code, language, selectedCode, lineRange, userMessage, conversationHistory } = await req.json();
+    const { code, language, selectedCode, lineRange, userMessage, conversationHistory }: ReviewRequest =
+      await req.json();
 
     // Validate API key
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -40,7 +42,7 @@ Be concise but thorough. Use markdown for formatting. Focus your feedback specif
 
     // Build messages array
     const messages = [
-      ...conversationHistory.map((msg: any) => ({
+      ...conversationHistory.map((msg) => ({
         role: msg.role,
         content: msg.content,
       })),

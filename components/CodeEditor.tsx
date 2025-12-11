@@ -6,16 +6,16 @@ import { generateId, getNextThreadColor, extractSelection, detectLanguage } from
 import { CodeThread } from '@/lib/types';
 import dynamic from 'next/dynamic';
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { truncateText } from '@/lib/utils';
 import CodeMirror from '@uiw/react-codemirror';
-import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, placeholder } from '@codemirror/view';
-import { EditorState, Extension, StateField, StateEffect, RangeSetBuilder } from '@codemirror/state';
+import { EditorView, ViewUpdate, placeholder } from '@codemirror/view';
+import { Extension, EditorState } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { json } from '@codemirror/lang-json';
 import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
+import { createThreadDecorationsExtension, setThreadDecorations } from '@/lib/codemirror/threadDecorations';
 
 // CodeMirror is loaded dynamically (client-side only)
 const CodeMirrorEditor = dynamic(() => Promise.resolve(CodeMirror), {
@@ -57,124 +57,6 @@ function getLanguageExtension(language: string): Extension {
   }
 }
 
-// Thread decoration widget
-class ThreadWidget extends WidgetType {
-  constructor(private color: string, private isActive: boolean) {
-    super();
-  }
-
-  toDOM() {
-    const span = document.createElement('span');
-    span.className = `thread-glyph-${this.color}`;
-    span.style.cssText = `
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      margin-right: 4px;
-      ${this.isActive ? 'opacity: 1;' : 'opacity: 0.7;'}
-    `;
-    return span;
-  }
-}
-
-// Helper to convert 1-indexed line/column to CodeMirror position
-function getPosition(state: EditorState, line: number, column: number): number {
-  try {
-    const lineObj = state.doc.line(line);
-    return lineObj.from + column - 1;
-  } catch {
-    return 0;
-  }
-}
-
-// Create decoration for thread highlight
-function createThreadDecoration(thread: CodeThread, isActive: boolean, state: EditorState): { decoration: Decoration; from: number; to: number } {
-  const from = getPosition(state, thread.startLine, thread.startColumn);
-  const to = getPosition(state, thread.endLine, thread.endColumn);
-  
-  const className = `thread-highlight-${thread.color}${isActive ? ' thread-highlight-active' : ''}`;
-  
-  const decoration = Decoration.mark({
-    class: className,
-    attributes: {
-      title: `Thread: ${truncateText(thread.messages[0]?.content || '', 50)}`,
-    },
-  });
-  
-  return { decoration, from, to };
-}
-
-// Create gutter decoration for thread
-function createGutterDecoration(thread: CodeThread, isActive: boolean, state: EditorState): { decoration: Decoration | null; from: number; to: number } {
-  try {
-    const line = state.doc.line(thread.startLine);
-    const decoration = Decoration.widget({
-      widget: new ThreadWidget(thread.color, isActive),
-      side: -1,
-    });
-    
-    return { decoration, from: line.from, to: line.from };
-  } catch {
-    return { decoration: null, from: 0, to: 0 };
-  }
-}
-
-// Thread decorations state field
-const threadDecorations = StateField.define<DecorationSet>({
-  create() {
-    return Decoration.none;
-  },
-  update(decorations, tr) {
-    decorations = decorations.map(tr.changes);
-    return decorations;
-  },
-  provide: f => EditorView.decorations.from(f),
-});
-
-// Effect to update thread decorations
-const setThreadDecorations = StateEffect.define<{ threads: CodeThread[]; activeThreadId: string | null }>();
-
-// Plugin to handle thread decorations
-const threadDecorationsPlugin = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet;
-
-    constructor(view: EditorView) {
-      this.decorations = Decoration.none;
-    }
-
-    update(update: ViewUpdate) {
-      for (const tr of update.transactions) {
-        const threadData = tr.effects.find(e => e.is(setThreadDecorations));
-        if (threadData) {
-          const { threads, activeThreadId } = threadData.value;
-          const builder = new RangeSetBuilder<Decoration>();
-          
-          threads.forEach(thread => {
-            const isActive = thread.id === activeThreadId;
-            try {
-              const { decoration: markDeco, from, to } = createThreadDecoration(thread, isActive, update.state);
-              builder.add(from, to, markDeco);
-              
-              const { decoration: gutterDeco, from: gutterFrom, to: gutterTo } = createGutterDecoration(thread, isActive, update.state);
-              if (gutterDeco) {
-                builder.add(gutterFrom, gutterTo, gutterDeco);
-              }
-            } catch (e) {
-              // Skip invalid ranges
-              console.warn('Invalid thread range:', thread, e);
-            }
-          });
-          
-          this.decorations = builder.finish();
-        }
-      }
-    }
-  },
-  {
-    decorations: v => v.decorations,
-  }
-);
 
 export function CodeEditor() {
   const { state, dispatch } = useCodeReview();
@@ -226,10 +108,7 @@ export function CodeEditor() {
 
   // Thread decorations extension
   const threadDecorationsExtension = useMemo(() => {
-    return [
-      threadDecorations,
-      threadDecorationsPlugin,
-    ];
+    return createThreadDecorationsExtension();
   }, []);
 
   // Update thread decorations when threads change
@@ -253,14 +132,14 @@ export function CodeEditor() {
       language = detectLanguage(value, state.currentSession?.fileName);
     }
     
-    dispatch({
-      type: 'SET_CODE',
-      payload: {
-        code: value,
+      dispatch({
+        type: 'SET_CODE',
+        payload: {
+          code: value,
         language: language,
         fileName: state.currentSession?.fileName,
-      },
-    });
+        },
+      });
   };
 
   const handleSelectionChange = (update: ViewUpdate) => {
@@ -500,6 +379,7 @@ export function CodeEditor() {
         '.cm-content': {
           padding: '16px',
           backgroundColor: 'var(--editor-bg)',
+          caretColor: 'var(--foreground)',
         },
         '.cm-editor': {
           height: '100%',
@@ -529,9 +409,6 @@ export function CodeEditor() {
         '.cm-selection': {
           background: 'var(--selection-bg) !important',
           opacity: '1 !important',
-        },
-        '.cm-content': {
-          caretColor: 'var(--foreground)',
         },
       }),
       EditorState.tabSize.of(2),

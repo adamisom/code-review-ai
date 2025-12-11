@@ -1,7 +1,7 @@
 'use client';
 
 import { useCodeReview } from './providers/CodeReviewProvider';
-import { CommentThread } from './CommentThread';
+import { CommentThread } from './threads/CommentThread';
 import { formatTimestamp, truncateText } from '@/lib/utils';
 
 export function ThreadPanel() {

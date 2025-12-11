@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCodeReview } from './providers/CodeReviewProvider';
 import { SessionManager } from './SessionManager';
+import { CodeReviewSession } from '@/lib/types';
+import { THEME } from '@/lib/constants';
 
 export function Header() {
   const { state, dispatch } = useCodeReview();
@@ -16,16 +18,16 @@ export function Header() {
     }
   };
 
-  const handleLoadSession = (session: any) => {
+  const handleLoadSession = (session: CodeReviewSession): void => {
     dispatch({ type: 'LOAD_SESSION', payload: session });
   };
 
-  const handleThemeToggle = () => {
-    const newTheme = state.editorTheme === 'vs-dark' ? 'vs-light' : 'vs-dark';
+  const handleThemeToggle = (): void => {
+    const newTheme = state.editorTheme === THEME.DARK ? THEME.LIGHT : THEME.DARK;
     dispatch({ type: 'SET_THEME', payload: newTheme });
     // Update CSS theme variable
     if (typeof window !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', newTheme === 'vs-dark' ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', newTheme === THEME.DARK ? 'dark' : 'light');
       localStorage.setItem('code-review-theme', newTheme);
     }
   };
@@ -34,10 +36,10 @@ export function Header() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('code-review-theme');
-      const theme = savedTheme === 'vs-light' ? 'vs-light' : 'vs-dark';
+      const theme = savedTheme === THEME.LIGHT ? THEME.LIGHT : THEME.DARK;
       dispatch({ type: 'SET_THEME', payload: theme });
       // Set initial CSS theme variable
-      document.documentElement.setAttribute('data-theme', theme === 'vs-dark' ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme === THEME.DARK ? 'dark' : 'light');
     }
   }, [dispatch]);
 
@@ -185,9 +187,9 @@ ${thread.messages.map((m) => `**${m.role === 'user' ? 'User' : 'AI'}** (${new Da
           <button
             onClick={handleThemeToggle}
             className="px-3 py-1.5 text-sm border border-border rounded hover:bg-border/50 transition"
-            title={`Switch to ${state.editorTheme === 'vs-dark' ? 'light' : 'dark'} theme`}
+            title={`Switch to ${state.editorTheme === THEME.DARK ? 'light' : 'dark'} theme`}
           >
-            {state.editorTheme === 'vs-dark' ? '☀️' : '🌙'}
+            {state.editorTheme === THEME.DARK ? '☀️' : '🌙'}
           </button>
           <button
             onClick={handleExport}
